@@ -21,16 +21,22 @@
 ### 현재의 일반적 NestJS 코드 (지저분하고 위험)
 
 ```typescript
+// 호출자가 tenantId를 직접 넘겨야 해서 누락 위험이 큼
 async findAll(tenantId: string) {
-  return this.repo.find({ where: { tenantId } });  // 빠뜨리면 사고
+  // where에 tenantId를 직접 넣어야만 같은 테넌트 데이터만 조회됨
+  return this.repo.find({ where: { tenantId } });
 }
 
+// 단건 조회도 id + tenantId를 매번 함께 조건으로 넣어야 안전함
 async findOne(tenantId: string, id: string) {
+  // tenantId를 빼먹으면 다른 테넌트의 같은 id를 조회할 수 있음
   return this.repo.findOne({ where: { id, tenantId } });
 }
 
+// 캐시 조회 시에도 tenantId를 키 prefix에 수동 반영해야 함
 async getCachedRoster(tenantId: string) {
-  return this.cache.get(`roster:${tenantId}`);  // 캐시 키도 수동
+  // prefix 누락 시 캐시가 테넌트 간 섞일 수 있음
+  return this.cache.get(`roster:${tenantId}`);
 }
 ```
 
@@ -43,21 +49,29 @@ async getCachedRoster(tenantId: string) {
 ### nestjs-tenant-shield의 솔루션
 
 ```typescript
+// Nest DI에 서비스로 등록
 @Injectable()
-@RequireTenant()  // 클래스 한 줄
+// 이 클래스의 메서드 실행 시 tenant 컨텍스트가 필수
+@RequireTenant()
 export class StudentsService {
-  
+
+  // 호출부에서 tenantId를 전달하지 않아도 자동 격리됨
   async findAll() {
-    return this.repo.find();  // tenant_id 자동 WHERE
+    // 내부적으로 현재 tenant 기준 WHERE가 주입됨
+    return this.repo.find();
   }
 
+  // id만 받아도 tenant 범위 안에서만 조회됨
   async findOne(id: string) {
-    return this.repo.findOne({ where: { id } });  // 자동
+    // where에 tenantId를 직접 쓰지 않아도 안전하게 동작
+    return this.repo.findOne({ where: { id } });
   }
 
+  // 캐시 사용 시에도 tenant 단위로 키 분리
   @Cacheable({ ttl: 300, tenantScoped: true })
   async getRoster() {
-    return this.repo.find();  // 캐시 키도 자동 분리
+    // 같은 key라도 tenant마다 별도 캐시 엔트리로 저장됨
+    return this.repo.find();
   }
 }
 ```
@@ -85,13 +99,13 @@ export class StudentsService {
 ## 📦 설치
 
 ```bash
-pnpm add nestjs-tenant-shield
+pnpm add nestjs-tenant-shield   # 라이브러리 본체 설치
 
-# TypeORM 사용 시
-pnpm add typeorm
+# TypeORM 사용 시 추가 설치
+pnpm add typeorm                # TypeORM 연동 기능 사용
 
-# Prisma 사용 시 (v0.2)
-pnpm add @prisma/client
+# Prisma 사용 시 추가 설치 (v0.2)
+pnpm add @prisma/client         # Prisma Client 연동 준비
 ```
 
 필수 환경:
@@ -105,39 +119,50 @@ pnpm add @prisma/client
 ### 1단계: 모듈 설정
 
 ```typescript
+// Nest의 모듈 데코레이터
 import { Module } from '@nestjs/common';
+// 멀티테넌시 보호 모듈
 import { TenantShieldModule } from 'nestjs-tenant-shield';
 
+// 루트 모듈 정의
 @Module({
   imports: [
+    // 전역 설정 등록
     TenantShieldModule.forRoot({
-      strategy: 'discriminator',     // tenant_id 컬럼 패턴
-      tenantIdField: 'tenantId',     // 또는 'spaceId', 'orgId'
-      tenantSource: 'header',
-      headerName: 'x-tenant-id',
-      strictMode: true,
+      strategy: 'discriminator',     // 단일 테이블 + tenantId 컬럼 전략
+      tenantIdField: 'tenantId',     // 테넌트 컬럼명 (서비스에 맞게 변경 가능)
+      tenantSource: 'header',        // 요청 헤더에서 tenant 식별
+      headerName: 'x-tenant-id',     // 사용할 헤더 이름
+      strictMode: true,              // tenant 없으면 즉시 예외 발생
     }),
   ],
 })
+// 앱 시작 모듈
 export class AppModule {}
 ```
 
 ### 2단계: Entity에 tenant_id 추가
 
 ```typescript
+// TypeORM 엔티티 데코레이터 import
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
+// students 테이블에 매핑될 엔티티
 @Entity()
 export class Student {
+  // PK 자동 증가 컬럼
   @PrimaryGeneratedColumn()
   id: number;
-  
+
+  // 멀티테넌시 격리를 위한 핵심 컬럼
   @Column()
   tenantId: string;
-  
+
+  // 학생 이름
   @Column()
   name: string;
-  
+
+  // 성적
   @Column()
   grade: number;
 }
@@ -146,28 +171,38 @@ export class Student {
 ### 3단계: 서비스에 데코레이터
 
 ```typescript
+// 서비스 데코레이터 import
 import { Injectable } from '@nestjs/common';
+// tenant 강제 + 캐시 데코레이터 import
 import { RequireTenant, Cacheable } from 'nestjs-tenant-shield';
 
+// DI 등록
 @Injectable()
+// 이 서비스의 메서드는 tenant 컨텍스트 없으면 실행 불가
 @RequireTenant()
 export class StudentsService {
+  // 저장소 주입
   constructor(private readonly repo: StudentsRepository) {}
 
+  // 현재 tenant 범위의 학생 목록 조회
   async findAll() {
     return this.repo.find();
   }
 
+  // 현재 tenant 범위에서 id로 단건 조회
   async findOne(id: string) {
     return this.repo.findOne({ where: { id } });
   }
 
+  // 현재 tenant 범위에서 학생 정보 수정
   async update(id: string, dto: UpdateStudentDto) {
     return this.repo.update(id, dto);
   }
 
+  // tenant별 캐시 분리 + 300초 TTL
   @Cacheable({ ttl: 300, tenantScoped: true })
   async getStatistics() {
+    // count도 tenant 범위로 자동 제한됨
     return { total: await this.repo.count() };
   }
 }
@@ -176,15 +211,21 @@ export class StudentsService {
 ### 4단계: 백그라운드 작업 (v0.2)
 
 ```typescript
+// Bull 큐 프로세서 데코레이터 import
 import { Processor, Process } from '@nestjs/bull';
+// 잡 실행 시 tenant 컨텍스트 복원 데코레이터
 import { TenantContext } from 'nestjs-tenant-shield';
 
+// reports 큐를 처리하는 워커
 @Processor('reports')
 export class ReportProcessor {
-  
+
+  // monthly 잡 타입 핸들러
   @Process('monthly')
+  // 잡 payload의 tenant 정보로 컨텍스트를 설정
   @TenantContext()
   async generate(job: Job<{ tenantId: string }>) {
+    // 백그라운드에서도 tenant 격리 유지
     return this.studentsService.findAll();
   }
 }
@@ -193,18 +234,27 @@ export class ReportProcessor {
 ### 5단계: 테스트
 
 ```typescript
+// 테스트 헬퍼 및 에러 타입 import
 import { runWithTenant, CrossTenantAccessError } from 'nestjs-tenant-shield';
 
+// StudentsService 동작 검증
 describe('StudentsService', () => {
+  // 같은 tenant 데이터만 보이는지 확인
   it('A 학원 컨텍스트에서는 A 학생만 조회', async () => {
+    // 테스트 실행 컨텍스트를 academy-A로 고정
     await runWithTenant('academy-A', async () => {
+      // 서비스 호출
       const students = await service.findAll();
+      // 결과 전체가 academy-A 소속인지 검증
       expect(students.every(s => s.tenantId === 'academy-A')).toBe(true);
     });
   });
 
+  // 다른 tenant 데이터 접근 차단 검증
   it('cross-tenant 시도 시 자동 throw', async () => {
+    // 실행 컨텍스트는 academy-A
     await runWithTenant('academy-A', async () => {
+      // academy-B 학생을 조회하면 예외가 발생해야 함
       await expect(
         service.findOne('student-from-academy-B')
       ).rejects.toThrow(CrossTenantAccessError);
@@ -235,6 +285,17 @@ describe('StudentsService', () => {
 
 쿼리 시 `WHERE tenantId = 'academy-A'` 빠뜨리면 사고. 라이브러리가 자동 주입.
 
+```sql
+-- tenant_id 조건을 누락한 위험한 조회 (금지)
+SELECT id, tenantId, name, grade
+FROM student;
+
+-- tenant_id 조건을 포함한 안전한 조회 (권장)
+SELECT id, tenantId, name, grade
+FROM student
+WHERE tenantId = 'academy-A';
+```
+
 ### 다층 격리 (Defense in Depth)
 
 ```
@@ -251,30 +312,30 @@ describe('StudentsService', () => {
 상세 API 명세는 `docs/api-spec.md` 참조. 핵심만 요약:
 
 ```typescript
-// 모듈 설정
+// 모듈 설정: 앱 시작 시 tenant-shield 전역 옵션 등록
 TenantShieldModule.forRoot({
-  strategy: 'discriminator',
-  tenantIdField: 'tenantId',
-  tenantSource: 'header' | 'jwt' | 'subdomain' | 'custom',
-  // ... source별 옵션
-  strictMode: true,
+  strategy: 'discriminator',                             // 단일 DB/테이블 + tenant 컬럼 전략
+  tenantIdField: 'tenantId',                             // tenant 식별 컬럼명
+  tenantSource: 'header' | 'jwt' | 'subdomain' | 'custom', // tenant 추출 소스 타입
+  // ... source별 옵션                                // 소스마다 추가 설정 가능
+  strictMode: true,                                      // tenant 누락 요청 즉시 차단
 })
 
-// 데코레이터
-@RequireTenant({ allowSystem?: boolean })
-@SystemAction()
-@Cacheable({ ttl: number, tenantScoped?: boolean })
-@TenantContext({ extractFrom?: (job) => string })  // v0.2
+// 데코레이터: 메서드/클래스에 보안 정책 부착
+@RequireTenant({ allowSystem?: boolean })               // tenant 컨텍스트 강제
+@SystemAction()                                          // 시스템 작업(예외 허용 경로) 표시
+@Cacheable({ ttl: number, tenantScoped?: boolean })      // 캐시 TTL + tenant 분리 여부
+@TenantContext({ extractFrom?: (job) => string })        // v0.2, 큐 잡에서 tenant 추출
 
-// 헬퍼
-const tenantId = getCurrentTenantId();
-await runWithTenant('A', async () => {});
-await runWithoutTenant(async () => {});
+// 헬퍼: 코드에서 컨텍스트를 직접 제어할 때 사용
+const tenantId = getCurrentTenantId();                   // 현재 요청 tenant 읽기
+await runWithTenant('A', async () => {});                // 특정 tenant 컨텍스트로 실행
+await runWithoutTenant(async () => {});                  // tenant 없이 시스템 작업 실행
 
-// 에러
-class MissingTenantContextError extends Error {}
-class CrossTenantAccessError extends Error {}
-class InvalidTenantSourceError extends Error {}
+// 에러: tenant 관련 예외 타입
+class MissingTenantContextError extends Error {}          // tenant가 없을 때
+class CrossTenantAccessError extends Error {}             // 타 tenant 접근 감지 시
+class InvalidTenantSourceError extends Error {}           // tenant 추출 소스 설정 오류
 ```
 
 ## 🛡️ 보안 가이드
@@ -332,27 +393,31 @@ class InvalidTenantSourceError extends Error {}
 
 ### 학원 관리 SaaS
 ```typescript
+// 클래스 전체에 tenant 컨텍스트 강제
 @RequireTenant()
 export class ClassesService {
+  // 수강 목록 조회도 tenant 범위 안에서만 수행
   async getEnrollments() { /* ... */ }
 }
 ```
 
 ### 병원 관리 SaaS
 ```typescript
+// 병원 도메인에 맞게 tenant 컬럼명을 hospitalId로 지정
 TenantShieldModule.forRoot({
-  tenantIdField: 'hospitalId',
-  tenantSource: 'jwt',
-  jwtClaim: 'hospital_id',
+  tenantIdField: 'hospitalId',   // 테넌트 식별 필드명
+  tenantSource: 'jwt',           // JWT에서 tenant 추출
+  jwtClaim: 'hospital_id',       // JWT claim 키 이름
 })
 ```
 
 ### 슬랙 같은 팀 협업
 ```typescript
+// 워크스페이스 단위 SaaS 구성 예시
 TenantShieldModule.forRoot({
-  tenantIdField: 'workspaceId',
-  tenantSource: 'subdomain',
-  subdomainPattern: '*.yourapp.com',
+  tenantIdField: 'workspaceId',      // 워크스페이스 식별 필드
+  tenantSource: 'subdomain',         // 서브도메인에서 tenant 추출
+  subdomainPattern: '*.yourapp.com', // tenant 추출 대상 도메인 패턴
 })
 ```
 
