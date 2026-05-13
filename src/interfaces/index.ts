@@ -9,4 +9,5 @@ export * from './tenant-shield-options.interface';
 export * from './require-tenant-options.interface';
 export * from './cacheable-options.interface';
 export * from './tenant-context-options.interface';
+// TenantContext는 데코레이터와 이름이 충돌하므로 public 진입점에서는 별칭으로 export.
 export * from './tenant-context.interface';

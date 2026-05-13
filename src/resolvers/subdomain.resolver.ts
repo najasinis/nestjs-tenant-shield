@@ -33,7 +33,7 @@ export class SubdomainTenantResolver implements TenantResolver {
    *                  '*' 자리에 들어가는 부분이 tenant ID로 사용됩니다.
    *                  예: '*.yourapp.com', '*.staging.yourapp.com'
    */
-  constructor(private readonly pattern: string) {
+  constructor(pattern: string) {
     // '*.yourapp.com' → '^([^.]+)\.yourapp\.com$' 형태로 변환.
     //  - '*' → '([^.]+)' (도트가 아닌 한 글자 이상, 캡처 그룹)
     //  - '.' → '\.'      (정규식에서 '.' 이스케이프)

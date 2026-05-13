@@ -1,8 +1,12 @@
 import {
+  DeleteQueryBuilder,
   EntitySubscriberInterface,
   EventSubscriber,
   InsertEvent,
   LoadEvent,
+  Repository,
+  SelectQueryBuilder,
+  UpdateQueryBuilder,
 } from 'typeorm';
 import { getCurrentTenantId } from '../context/get-current-tenant-id';
 import { tenantContextStorage } from '../context/tenant-context.storage';
@@ -29,7 +33,12 @@ import { CrossTenantAccessError } from '../errors/cross-tenant-access.error';
  */
 @EventSubscriber()
 export class TenantSubscriber implements EntitySubscriberInterface {
-  constructor(private readonly options: TenantShieldOptions) {}
+  constructor(private readonly options: TenantShieldOptions) {
+    // v0.1: QueryBuilder 레벨에서 auto WHERE 주입 패치 적용
+    patchQueryBuildersOnce(options);
+    // v0.1: Repository 레벨에서 auto WHERE/INSERT 보강
+    patchRepositoriesOnce(options);
+  }
 
   /**
    * INSERT 직전 hook.
@@ -115,13 +124,8 @@ export class TenantSubscriber implements EntitySubscriberInterface {
    * TypeORM 0.3+에서는 beforeQuery 같은 hook이 제한적이라,
    * 실제 구현은 EntityManager wrap 또는 QueryBuilder 가로채기를 통해 이뤄집니다.
    *
-   * TODO(v0.0.3 마일스톤): 정확한 구현 전략 결정.
-   *   옵션 A: QueryBuilder의 createQueryBuilder를 monkey-patch
-   *   옵션 B: TypeORM connection의 query() 가로채기 + SQL 텍스트 변환
-   *   옵션 C: Repository 패턴 — Tenant-aware Repository 자동 주입 (가장 깔끔)
-   *
-   * 일단 v0.1 스켈레톤은 인터페이스만 정의하고, afterLoad 검증을
-   * 통한 "사후 차단"으로 안전망 역할 보장.
+    * v0.1에서는 QueryBuilder 프로토타입을 monkey-patch하여
+    * getMany/getOne/getCount/execute 전에 자동 조건을 주입합니다.
    */
   // beforeQuery(event: QueryEvent): void { ... }  // v0.0.3 추가 예정
 
@@ -139,4 +143,311 @@ export class TenantSubscriber implements EntitySubscriberInterface {
     }
     return this.options.entities.includes(target);
   }
+}
+
+const TENANT_WHERE_APPLIED_FLAG = '__tenantShieldWhereApplied';
+let isQueryBuilderPatched = false;
+let patchedTenantField: string | null = null;
+let isRepositoryPatched = false;
+let patchedOptions: TenantShieldOptions | null = null;
+
+function patchQueryBuildersOnce(options: TenantShieldOptions): void {
+  if (isQueryBuilderPatched) {
+    if (patchedTenantField && patchedTenantField !== options.tenantIdField) {
+      throw new Error(
+        `TenantSubscriber: 이미 tenantIdField='${patchedTenantField}'로 패치됨. ` +
+          `다른 tenantIdField='${options.tenantIdField}'는 지원하지 않습니다.`,
+      );
+    }
+    return;
+  }
+
+  isQueryBuilderPatched = true;
+  patchedTenantField = options.tenantIdField;
+
+  const originalGetMany = SelectQueryBuilder.prototype.getMany;
+  SelectQueryBuilder.prototype.getMany = function (this: SelectQueryBuilder<any>, ...args: any[]) {
+    applyTenantWhereIfNeeded(this, options);
+    return originalGetMany.apply(this, args as any);
+  } as any;
+
+  const originalGetOne = SelectQueryBuilder.prototype.getOne;
+  SelectQueryBuilder.prototype.getOne = function (this: SelectQueryBuilder<any>, ...args: any[]) {
+    applyTenantWhereIfNeeded(this, options);
+    return originalGetOne.apply(this, args as any);
+  } as any;
+
+  const originalGetManyAndCount = SelectQueryBuilder.prototype.getManyAndCount;
+  SelectQueryBuilder.prototype.getManyAndCount = function (this: SelectQueryBuilder<any>, ...args: any[]) {
+    applyTenantWhereIfNeeded(this, options);
+    return originalGetManyAndCount.apply(this, args as any);
+  } as any;
+
+  const originalGetCount = SelectQueryBuilder.prototype.getCount;
+  SelectQueryBuilder.prototype.getCount = function (this: SelectQueryBuilder<any>, ...args: any[]) {
+    applyTenantWhereIfNeeded(this, options);
+    return originalGetCount.apply(this, args as any);
+  } as any;
+
+  const originalGetRawMany = SelectQueryBuilder.prototype.getRawMany;
+  SelectQueryBuilder.prototype.getRawMany = function (this: SelectQueryBuilder<any>, ...args: any[]) {
+    applyTenantWhereIfNeeded(this, options);
+    return originalGetRawMany.apply(this, args as any);
+  } as any;
+
+  const originalGetRawOne = SelectQueryBuilder.prototype.getRawOne;
+  SelectQueryBuilder.prototype.getRawOne = function (this: SelectQueryBuilder<any>, ...args: any[]) {
+    applyTenantWhereIfNeeded(this, options);
+    return originalGetRawOne.apply(this, args as any);
+  } as any;
+
+  const originalUpdateExecute = UpdateQueryBuilder.prototype.execute;
+  UpdateQueryBuilder.prototype.execute = function (this: UpdateQueryBuilder<any>, ...args: any[]) {
+    applyTenantWhereIfNeeded(this, options);
+    return originalUpdateExecute.apply(this, args as any);
+  } as any;
+
+  const originalDeleteExecute = DeleteQueryBuilder.prototype.execute;
+  DeleteQueryBuilder.prototype.execute = function (this: DeleteQueryBuilder<any>, ...args: any[]) {
+    applyTenantWhereIfNeeded(this, options);
+    return originalDeleteExecute.apply(this, args as any);
+  } as any;
+}
+
+function applyTenantWhereIfNeeded(
+  queryBuilder: SelectQueryBuilder<any> | UpdateQueryBuilder<any> | DeleteQueryBuilder<any>,
+  options: TenantShieldOptions,
+): void {
+  const qb = queryBuilder as any;
+  if (qb[TENANT_WHERE_APPLIED_FLAG]) return;
+
+  const tenantId = getCurrentTenantId();
+  const isSystemAction = tenantContextStorage.getStore()?.isSystemAction === true;
+
+  if (!tenantId) {
+    if (!isSystemAction && options.strictMode !== false) {
+      throw new MissingTenantContextError(
+        'QueryBuilder 실행 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
+        'typeorm-query',
+      );
+    }
+    return;
+  }
+
+  if (isSystemAction) return;
+
+  const mainAlias = qb.expressionMap?.mainAlias;
+  const metadata = mainAlias?.metadata;
+  if (!metadata) return;
+
+  if (!isTenantAwareMetadata(metadata, options)) return;
+
+  const tenantField = options.tenantIdField;
+  const aliasName = mainAlias.name;
+  const paramKey = '__tenant_id';
+
+  const wheres = qb.expressionMap?.wheres ?? [];
+  const hasTenantWhere = wheres.some((where: any) => {
+    const condition = where?.condition;
+    if (!condition) return false;
+    if (typeof condition === 'string') return condition.includes(tenantField);
+    try {
+      return JSON.stringify(condition).includes(tenantField);
+    } catch {
+      return false;
+    }
+  });
+
+  if (!hasTenantWhere) {
+    qb.andWhere(`${aliasName}.${tenantField} = :${paramKey}`, {
+      [paramKey]: tenantId,
+    });
+  }
+
+  qb[TENANT_WHERE_APPLIED_FLAG] = true;
+}
+
+function isTenantAwareMetadata(metadata: any, options: TenantShieldOptions): boolean {
+  if (options.entities && options.entities.length > 0) {
+    if (!options.entities.includes(metadata.target)) return false;
+  }
+
+  const tenantField = options.tenantIdField;
+  return metadata.columns.some(
+    (column: any) => column.propertyName === tenantField || column.databaseName === tenantField,
+  );
+}
+
+function patchRepositoriesOnce(options: TenantShieldOptions): void {
+  if (isRepositoryPatched) {
+    if (patchedTenantField && patchedTenantField !== options.tenantIdField) {
+      throw new Error(
+        `TenantSubscriber: 이미 tenantIdField='${patchedTenantField}'로 패치됨. ` +
+          `다른 tenantIdField='${options.tenantIdField}'는 지원하지 않습니다.`,
+      );
+    }
+    return;
+  }
+
+  isRepositoryPatched = true;
+  patchedTenantField = options.tenantIdField;
+  patchedOptions = options;
+
+  const originalFind = Repository.prototype.find;
+  Repository.prototype.find = function (this: Repository<any>, options?: any) {
+    const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
+    return originalFind.call(this, patched);
+  } as any;
+
+  const originalFindOne = Repository.prototype.findOne;
+  Repository.prototype.findOne = function (this: Repository<any>, options?: any) {
+    const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
+    return originalFindOne.call(this, patched);
+  } as any;
+
+  const originalFindBy = Repository.prototype.findBy;
+  Repository.prototype.findBy = function (this: Repository<any>, where: any) {
+    const patched = applyTenantToWhere(this, where);
+    return originalFindBy.call(this, patched);
+  } as any;
+
+  const originalFindOneBy = Repository.prototype.findOneBy;
+  Repository.prototype.findOneBy = function (this: Repository<any>, where: any) {
+    const patched = applyTenantToWhere(this, where);
+    return originalFindOneBy.call(this, patched);
+  } as any;
+
+  const originalCount = Repository.prototype.count;
+  Repository.prototype.count = function (this: Repository<any>, options?: any) {
+    const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
+    return originalCount.call(this, patched);
+  } as any;
+
+  const originalSave = Repository.prototype.save;
+  Repository.prototype.save = function (this: Repository<any>, entity: any, options?: any) {
+    const patchedEntity = applyTenantToSaveEntity(this, entity, options);
+    return originalSave.call(this, patchedEntity, options);
+  } as any;
+}
+
+function applyTenantToFindOptions(repo: Repository<any>, rawOptions: any, options: any): any {
+  const tenantId = getCurrentTenantId();
+  const isSystemAction = tenantContextStorage.getStore()?.isSystemAction === true;
+  const strict = patchedOptions?.strictMode !== false;
+
+  if (!tenantId && !isSystemAction) {
+    if (strict) {
+      throw new MissingTenantContextError(
+        'Repository 실행 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
+        'typeorm-repository',
+      );
+    }
+    return rawOptions;
+  }
+
+  if (!isTenantAwareRepository(repo, options)) return rawOptions;
+
+  const tenantField = patchedTenantField as string;
+  const resolvedTenantId = tenantId as string;
+  const baseWhere = options?.where ?? undefined;
+  const mergedWhere = mergeTenantWhere(baseWhere, tenantField, resolvedTenantId);
+
+  return {
+    ...(rawOptions ?? {}),
+    where: mergedWhere,
+  };
+}
+
+function applyTenantToWhere(repo: Repository<any>, where: any): any {
+  const tenantId = getCurrentTenantId();
+  const isSystemAction = tenantContextStorage.getStore()?.isSystemAction === true;
+  const strict = patchedOptions?.strictMode !== false;
+
+  if (!tenantId) {
+    if (!isSystemAction) {
+      if (strict) {
+        throw new MissingTenantContextError(
+          'Repository 실행 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
+          'typeorm-repository',
+        );
+      }
+    }
+    return where;
+  }
+
+  if (!isTenantAwareRepository(repo, where)) return where;
+
+  const tenantField = patchedTenantField as string;
+  const resolvedTenantId = tenantId as string;
+  return mergeTenantWhere(where, tenantField, resolvedTenantId);
+}
+
+function applyTenantToSaveEntity(repo: Repository<any>, entity: any, _options: any): any {
+  const tenantId = getCurrentTenantId();
+  const isSystemAction = tenantContextStorage.getStore()?.isSystemAction === true;
+  const strict = patchedOptions?.strictMode !== false;
+
+  if (!tenantId) {
+    if (!isSystemAction) {
+      if (strict) {
+        throw new MissingTenantContextError(
+          'Repository.save 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
+          'typeorm-save',
+        );
+      }
+    }
+    return entity;
+  }
+
+  if (!isTenantAwareRepository(repo, entity)) return entity;
+
+  const tenantField = patchedTenantField as string;
+  const resolvedTenantId = tenantId as string;
+
+  const attach = (item: any) => {
+    const existing = item?.[tenantField];
+    if (existing && existing !== resolvedTenantId) {
+      throw new CrossTenantAccessError(
+        `INSERT 시 ${tenantField}=${existing}는 현재 tenant(${tenantId})와 다릅니다.`,
+        resolvedTenantId,
+        String(existing),
+        repo.metadata?.name ?? 'UnknownEntity',
+      );
+    }
+    if (!existing) {
+      item[tenantField] = resolvedTenantId;
+    }
+  };
+
+  if (Array.isArray(entity)) {
+    entity.forEach(attach);
+    return entity;
+  }
+
+  attach(entity);
+  return entity;
+}
+
+function mergeTenantWhere(where: any, tenantField: string, tenantId: string): any {
+  if (!where) {
+    return { [tenantField]: tenantId };
+  }
+
+  if (Array.isArray(where)) {
+    return where.map((item) => ({ ...item, [tenantField]: tenantId }));
+  }
+
+  return { ...where, [tenantField]: tenantId };
+}
+
+function isTenantAwareRepository(repo: Repository<any>, _input: any): boolean {
+  const metadata = repo.metadata;
+  if (!metadata) return false;
+  if (patchedTenantField == null) return false;
+
+  const tenantField = patchedTenantField;
+
+  return metadata.columns.some(
+    (column: any) => column.propertyName === tenantField || column.databaseName === tenantField,
+  );
 }

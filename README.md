@@ -309,7 +309,7 @@ WHERE tenantId = 'academy-A';
 
 ## 🔧 API 레퍼런스
 
-상세 API 명세는 `docs/api-spec.md` 참조. 핵심만 요약:
+상세 API 명세는 `docs/tenant-shield-api-spec.md` 참조. 핵심만 요약:
 
 ```typescript
 // 모듈 설정: 앱 시작 시 tenant-shield 전역 옵션 등록
@@ -428,3 +428,10 @@ TenantShieldModule.forRoot({
 ## 📜 라이선스
 
 MIT © Jinyeong Jung
+
+## 📚 문서 안내
+
+- README: 사용법/예제/빠른 시작 (이 문서)
+- docs/tenant-shield-api-spec.md: API 상세 명세
+- docs/tenant-shield-PRD.md: 설계/로드맵/배경
+- multi-tenant-explainer.md: 멀티테넌시 개념 요약

@@ -55,7 +55,7 @@ export function RequireTenant(
     // propertyKey와 descriptor가 모두 존재함.
     // ─────────────────────────────────────────────
     if (propertyKey && descriptor) {
-      wrapMethod(target, propertyKey, descriptor, options);
+      wrapMethod(propertyKey, descriptor, options);
       return descriptor;
     }
 
@@ -78,7 +78,7 @@ export function RequireTenant(
       const isSystemAction = Reflect.getMetadata(SYSTEM_ACTION_METADATA, desc.value);
       if (isSystemAction) continue;
 
-      wrapMethod(proto, key, desc, options);
+      wrapMethod(key, desc, options);
 
       // 변경된 descriptor 적용.
       Object.defineProperty(proto, key, desc);
@@ -94,7 +94,6 @@ export function RequireTenant(
  * 이 함수가 실질적인 보호 로직의 코어입니다.
  */
 function wrapMethod(
-  target: any,
   propertyKey: string | symbol,
   descriptor: PropertyDescriptor,
   options: RequireTenantOptions,

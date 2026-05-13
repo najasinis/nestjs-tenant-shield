@@ -32,8 +32,17 @@ export * from './context';
 // 미들웨어 (사용자가 수동 설정하고 싶을 때 직접 가져갈 수 있게 노출)
 export * from './middleware';
 
-// 인터페이스/타입
-export * from './interfaces';
+// 인터페이스/타입 (public API 충돌 방지를 위해 명시 export)
+export {
+	TenantShieldOptions,
+	TenantShieldAsyncOptions,
+	TenantSource,
+	TenantStrategy,
+} from './interfaces/tenant-shield-options.interface';
+export { RequireTenantOptions } from './interfaces/require-tenant-options.interface';
+export { CacheableOptions } from './interfaces/cacheable-options.interface';
+export { TenantContextOptions } from './interfaces/tenant-context-options.interface';
+export { TenantContext as TenantContextState } from './interfaces/tenant-context.interface';
 
 // 에러
 export * from './errors';

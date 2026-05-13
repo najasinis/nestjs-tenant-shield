@@ -12,6 +12,17 @@
   "//4": "빌드 결과물은 dist/ 폴더에 들어가므로 배포 시에는 dist/index.js를 가리킵니다.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
+    "./package.json": "./package.json"
+  },
 
   "//5": "npm publish 시 실제로 패키지에 포함될 파일 화이트리스트입니다. src/ 같은 원본 코드는 제외하여 패키지 크기를 줄입니다.",
   "files": [
@@ -73,6 +84,7 @@
     "prettier": "^3.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
+    "sqlite3": "^5.1.7",
     "ts-jest": "^29.1.0",
     "typeorm": "^0.3.17",
     "typescript": "^5.0.0"
