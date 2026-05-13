@@ -1,0 +1,10 @@
+{
+  "//": "NestJS CLI 설정 파일. NestJS 라이브러리/모노레포 프로젝트에서 nest 명령(nest build 등)이 어떻게 동작할지 정의합니다.",
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "tsConfigPath": "tsconfig.build.json"
+  }
+}
