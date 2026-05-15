@@ -14,6 +14,7 @@ import { ModuleRef } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import {
   TenantShieldAsyncOptions,
+  TenantShieldCacheProvider,
   TenantShieldOptions,
 } from './interfaces/tenant-shield-options.interface';
 import { TENANT_SHIELD_CACHE, TENANT_SHIELD_OPTIONS } from './constants';
@@ -93,12 +94,9 @@ export class TenantShieldModule implements NestModule, OnApplicationBootstrap {
           useFactory: (opts: TenantShieldOptions) => new TenantSubscriber(opts),
           inject: [TENANT_SHIELD_OPTIONS],
         },
-        // 캐시 서비스 (기본: in-memory).
-        // 사용자가 Redis로 바꾸려면 override provider 등록.
-        {
-          provide: TENANT_SHIELD_CACHE,
-          useClass: InMemoryTenantAwareCacheService,
-        },
+        // 캐시 서비스 provider — 사용자 옵션을 보고 형태 결정.
+        // 미지정 시 InMemoryTenantAwareCacheService(개발/단일 프로세스용).
+        buildCacheProvider(options.cache),
         // 미들웨어 자체도 NestJS provider로 등록해 DI 동작 확보.
         TenantContextMiddleware,
       ],
@@ -132,9 +130,12 @@ export class TenantShieldModule implements NestModule, OnApplicationBootstrap {
           useFactory: (opts: TenantShieldOptions) => new TenantSubscriber(opts),
           inject: [TENANT_SHIELD_OPTIONS],
         },
+        // 비동기 옵션에서는 cache provider도 동적으로 풀어줘야 함.
+        // 옵션 객체가 비동기로 만들어지므로 factory에서 cache 슬롯을 읽어 적용.
         {
           provide: TENANT_SHIELD_CACHE,
-          useClass: InMemoryTenantAwareCacheService,
+          useFactory: (opts: TenantShieldOptions) => buildCacheInstance(opts.cache),
+          inject: [TENANT_SHIELD_OPTIONS],
         },
         TenantContextMiddleware,
       ],
@@ -204,4 +205,60 @@ export class TenantShieldModule implements NestModule, OnApplicationBootstrap {
     //    이 registry에서 fallback 인스턴스를 가져옵니다.
     setGlobalCache(this.cache);
   }
+}
+
+/**
+ * forRoot에서 사용자 cache 옵션을 보고 적절한 NestJS Provider 객체를 만들어줍니다.
+ *
+ * 세 가지 형태(useFactory / useValue / useClass)를 모두 지원하고, 어느 것도
+ * 안 주면 InMemoryTenantAwareCacheService를 기본으로 사용.
+ *
+ * 우선순위: useFactory > useValue > useClass > (default InMemory)
+ */
+function buildCacheProvider(opts?: TenantShieldCacheProvider): Provider {
+  if (opts?.useFactory) {
+    return {
+      provide: TENANT_SHIELD_CACHE,
+      useFactory: opts.useFactory,
+      inject: opts.inject ?? [],
+    };
+  }
+  if (opts?.useValue !== undefined) {
+    return {
+      provide: TENANT_SHIELD_CACHE,
+      useValue: opts.useValue,
+    };
+  }
+  if (opts?.useClass) {
+    return {
+      provide: TENANT_SHIELD_CACHE,
+      useClass: opts.useClass,
+    };
+  }
+  // 기본 — 단일 프로세스/개발 환경용 인메모리 구현체.
+  return {
+    provide: TENANT_SHIELD_CACHE,
+    useClass: InMemoryTenantAwareCacheService,
+  };
+}
+
+/**
+ * forRootAsync 경로용 — TENANT_SHIELD_OPTIONS가 비동기로 만들어진 뒤 캐시 인스턴스를
+ * 직접 만들어야 하는 케이스. NestJS Provider가 아닌 인스턴스를 반환합니다.
+ *
+ * useClass는 무인자 생성자 가정, useFactory의 inject는 forRootAsync 경로에서는
+ * 지원하지 않음 (필요하면 useValue로 외부에서 만들어 넘기길 권장).
+ */
+function buildCacheInstance(opts?: TenantShieldCacheProvider): unknown {
+  if (opts?.useFactory) {
+    return opts.useFactory();
+  }
+  if (opts?.useValue !== undefined) {
+    return opts.useValue;
+  }
+  if (opts?.useClass) {
+    const Ctor = opts.useClass as new () => unknown;
+    return new Ctor();
+  }
+  return new InMemoryTenantAwareCacheService();
 }

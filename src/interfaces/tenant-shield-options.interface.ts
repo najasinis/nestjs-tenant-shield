@@ -108,6 +108,39 @@ export interface TenantShieldOptions {
    * 명시하면 화이트리스트로 동작 (성능 + 안전성 둘 다 향상).
    */
   entities?: Function[];
+
+  /**
+   * 캐시 백엔드 교체 슬롯.
+   *
+   * 미지정 시 InMemoryTenantAwareCacheService(단일 프로세스용)가 사용됩니다.
+   * 프로덕션에서는 Redis 등 외부 캐시 어댑터로 교체 권장.
+   *
+   * 세 가지 형태로 제공 가능 (NestJS provider와 동일한 패턴):
+   *  - `useClass`   : 클래스 자체. NestJS DI가 인스턴스 생성.
+   *  - `useValue`   : 이미 만들어진 인스턴스. 외부에서 만든 싱글톤.
+   *  - `useFactory` : 비동기 셋업이 필요한 경우 (예: Redis client 초기화).
+   *
+   * 예시 (Redis 어댑터, 자세한 구현은 examples/redis-cache/ 참고):
+   *
+   *   cache: {
+   *     useFactory: (config: ConfigService) => new RedisCacheAdapter(config.get('REDIS_URL')),
+   *     inject: [ConfigService],
+   *   }
+   */
+  cache?: TenantShieldCacheProvider;
+}
+
+/**
+ * cache 슬롯에 들어갈 수 있는 세 가지 형태.
+ *
+ * 셋 중 정확히 하나만 채우는 것을 권장 (둘 이상 있으면 useFactory > useValue > useClass 순으로 우선).
+ */
+export interface TenantShieldCacheProvider {
+  useClass?: new (...args: any[]) => unknown;
+  useValue?: unknown;
+  useFactory?: (...args: any[]) => unknown | Promise<unknown>;
+  /** useFactory의 파라미터로 주입될 토큰들. */
+  inject?: any[];
 }
 
 /**
