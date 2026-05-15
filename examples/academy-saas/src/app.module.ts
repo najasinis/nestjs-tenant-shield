@@ -48,6 +48,24 @@ import { MaintenanceService } from './maintenance/maintenance.service';
 
       // 보호 대상 entity 화이트리스트 (선택 — 미지정 시 자동 감지).
       entities: [Student],
+
+      // ─────────────────────────────────────────────────────
+      // 다른 tenant 추출 방식으로 바꾸고 싶다면 위 옵션 일부만 교체.
+      // 코드 변경은 이 파일 한 곳만 — 비즈니스 로직은 그대로.
+      //
+      // 1) JWT 토큰의 claim에서 추출:
+      //   tenantSource: 'jwt',
+      //   jwtClaim: 'tenant_id',
+      //   // 인증 미들웨어가 req.user에 페이로드를 넣어두는 게 전제
+      //
+      // 2) 서브도메인에서 추출 (academy-a.yourapp.com):
+      //   tenantSource: 'subdomain',
+      //   subdomainPattern: '*.yourapp.com',
+      //
+      // 3) 완전 커스텀 (예: req.user.organizationId):
+      //   tenantSource: 'custom',
+      //   customResolver: (req: any) => req.user?.organizationId ?? null,
+      // ─────────────────────────────────────────────────────
     }),
   ],
   controllers: [StudentsController],
