@@ -293,40 +293,66 @@ function patchRepositoriesOnce(options: TenantShieldOptions): void {
   patchedTenantField = options.tenantIdField;
   patchedOptions = options;
 
+  // 각 patch에 try/catch + Promise.reject — 컨텍스트 누락 throw가 NestJS의
+  // async 흐름에서 자연스럽게 catch되도록 sync throw를 async rejection으로 통일.
   const originalFind = Repository.prototype.find;
   Repository.prototype.find = function (this: Repository<any>, options?: any) {
-    const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
-    return originalFind.call(this, patched);
+    try {
+      const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
+      return originalFind.call(this, patched);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   } as any;
 
   const originalFindOne = Repository.prototype.findOne;
   Repository.prototype.findOne = function (this: Repository<any>, options?: any) {
-    const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
-    return originalFindOne.call(this, patched);
+    try {
+      const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
+      return originalFindOne.call(this, patched);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   } as any;
 
   const originalFindBy = Repository.prototype.findBy;
   Repository.prototype.findBy = function (this: Repository<any>, where: any) {
-    const patched = applyTenantToWhere(this, where);
-    return originalFindBy.call(this, patched);
+    try {
+      const patched = applyTenantToWhere(this, where);
+      return originalFindBy.call(this, patched);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   } as any;
 
   const originalFindOneBy = Repository.prototype.findOneBy;
   Repository.prototype.findOneBy = function (this: Repository<any>, where: any) {
-    const patched = applyTenantToWhere(this, where);
-    return originalFindOneBy.call(this, patched);
+    try {
+      const patched = applyTenantToWhere(this, where);
+      return originalFindOneBy.call(this, patched);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   } as any;
 
   const originalCount = Repository.prototype.count;
   Repository.prototype.count = function (this: Repository<any>, options?: any) {
-    const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
-    return originalCount.call(this, patched);
+    try {
+      const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
+      return originalCount.call(this, patched);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   } as any;
 
   const originalSave = Repository.prototype.save;
   Repository.prototype.save = function (this: Repository<any>, entity: any, options?: any) {
-    const patchedEntity = applyTenantToSaveEntity(this, entity, options);
-    return originalSave.call(this, patchedEntity, options);
+    try {
+      const patchedEntity = applyTenantToSaveEntity(this, entity, options);
+      return originalSave.call(this, patchedEntity, options);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   } as any;
 }
 
@@ -335,8 +361,12 @@ function applyTenantToFindOptions(repo: Repository<any>, rawOptions: any, option
   const isSystemAction = tenantContextStorage.getStore()?.isSystemAction === true;
   const strict = patchedOptions?.strictMode !== false;
 
-  if (!tenantId && !isSystemAction) {
-    if (strict) {
+  // tenant가 없는 모든 케이스를 한 곳에서 분기.
+  //  - 시스템 작업이면: 머지 안 하고 원본 옵션 그대로 → 모든 tenant 데이터 접근
+  //  - strict면      : MissingTenantContextError throw
+  //  - 그 외         : 머지 안 하고 원본 옵션 그대로 (경고 정책은 데코레이터에서)
+  if (!tenantId) {
+    if (!isSystemAction && strict) {
       throw new MissingTenantContextError(
         'Repository 실행 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
         'typeorm-repository',
@@ -348,9 +378,8 @@ function applyTenantToFindOptions(repo: Repository<any>, rawOptions: any, option
   if (!isTenantAwareRepository(repo, options)) return rawOptions;
 
   const tenantField = patchedTenantField as string;
-  const resolvedTenantId = tenantId as string;
   const baseWhere = options?.where ?? undefined;
-  const mergedWhere = mergeTenantWhere(baseWhere, tenantField, resolvedTenantId);
+  const mergedWhere = mergeTenantWhere(baseWhere, tenantField, tenantId);
 
   return {
     ...(rawOptions ?? {}),
