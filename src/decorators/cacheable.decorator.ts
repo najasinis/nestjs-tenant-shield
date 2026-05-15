@@ -1,6 +1,7 @@
 import { CacheableOptions } from '../interfaces/cacheable-options.interface';
 import { getCurrentTenantId } from '../context/get-current-tenant-id';
 import { TenantAwareCacheService } from '../cache/cache.service';
+import { getGlobalCache } from '../cache/cache.registry';
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -35,15 +36,33 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
     const originalMethod = descriptor.value;
     const className = target.constructor?.name ?? 'UnknownClass';
 
+    // dev 환경에서 fallback 사용 시 1회만 안내 — 디버깅 부담 완화.
+    let fallbackWarned = false;
+
     descriptor.value = async function (this: any, ...args: unknown[]) {
-      // 1) 캐시 서비스 인스턴스를 인스턴스의 속성에서 가져옴.
-      //    NestJS DI로 주입된 cacheService를 가정 — 사용자 클래스에 의존성으로 추가 필요.
+      // 1) 캐시 서비스 인스턴스 lookup — 두 경로 시도:
+      //    (a) 사용자 클래스에 명시적으로 주입된 this.cacheService (우선)
+      //    (b) TenantShieldModule이 bootstrap 시 등록한 글로벌 registry (fallback)
       //
-      //    TODO(v0.1): 모듈에서 캐시 서비스를 글로벌하게 export 하고,
-      //                여기서 모듈 컨테이너 참조로 가져오는 방식으로 개선.
-      const cacheService: TenantAwareCacheService | undefined = this.cacheService;
+      //    (b)가 동작하려면 AppModule이 TenantShieldModule.forRoot()를
+      //    import 했고, 앱이 onApplicationBootstrap 라이프사이클을 지난 상태여야 함.
+      const explicit: TenantAwareCacheService | undefined = this.cacheService;
+      const cacheService: TenantAwareCacheService | undefined =
+        explicit ?? getGlobalCache();
+
       if (!cacheService) {
-        // 캐시 서비스가 주입되지 않은 경우엔 캐시 우회 — 그냥 원본 호출.
+        // 둘 다 없으면 캐시를 그냥 우회 — 기능적으로는 안전(원본 결과 반환).
+        // 다만 사용자가 @Cacheable을 명시했다는 건 캐시를 원했다는 뜻이므로
+        // 개발 환경에서 한 번만 경고 로그를 남겨 디버깅을 도와줍니다.
+        if (!fallbackWarned && process.env.NODE_ENV !== 'production') {
+          fallbackWarned = true;
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[nestjs-tenant-shield] @Cacheable이 적용된 ${className}.${String(propertyKey)}가 ` +
+              `캐시 인스턴스를 찾지 못해 원본 호출로 fallback 합니다. ` +
+              `TenantShieldModule.forRoot() import 여부 또는 cacheService 주입을 확인하세요.`,
+          );
+        }
         return originalMethod.apply(this, args);
       }
 
