@@ -1,0 +1,9 @@
+{
+  "//": "Prettier 코드 포매팅 규칙. 팀원 간 코드 스타일을 통일해서 diff 노이즈를 줄입니다.",
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "semi": true,
+  "arrowParens": "always"
+}
