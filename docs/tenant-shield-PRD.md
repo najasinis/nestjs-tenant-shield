@@ -411,3 +411,4 @@ dependencies (자체): 0개. AsyncLocalStorage는 Node.js 내장.
 |---|---|---|
 | v0.1 | 2026-05-09 | 초안. @guardrail/multi-tenant 시리즈에서 nestjs-tenant-shield 단일 패키지로 전환. |
 | v0.1-draft.1 | 2026-05-10 | 현실 상태 명시(설계 단계), Go/No-Go 검증 게이트 추가. |
+| v0.1-draft.2 | 2026-05-16 | API 도메인 예시 / @SystemAction vs runWithoutTenant 가이드 / 자동 보호 한계 / AsyncLocalStorage 컨텍스트 누락 / 성능 벤치마크 가이드 / 마이그레이션 가이드 머지. |
