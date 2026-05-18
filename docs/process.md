@@ -1,18 +1,43 @@
 # 개발 프로세스 & 진행 현황
 
-> 이 문서는 "지금 어디까지 왔고, 다음에 무엇을 할지"를 한눈에 보기 위한 작업 일지입니다.
-> 마일스톤 단위로 갱신합니다. 세부 사양은 [tenant-shield-PRD.md](./tenant-shield-PRD.md) /
+> 이 문서는 "지금 어디까지 왔고, 다음에 무엇을 할지"를 한눈에 보기 위한 작업 일지다.
+> 마일스톤 단위로 갱신한다. 운영 규칙은 [claude.md](./claude.md), 함정 목록은
+> [critical-notes.md](./critical-notes.md), 회고 워크플로는 [workflow.md](./workflow.md).
+> 상세 사양은 [tenant-shield-PRD.md](./tenant-shield-PRD.md) /
 > [tenant-shield-api-spec.md](./tenant-shield-api-spec.md) 참고.
 
 ---
 
-## 📌 지금 여기
+## 📌 지금 여기 (Live Dashboard)
 
 ```
 0단계 ✅ → 1번 ✅ → 2번 🔄 (2-a ✅ / 2-b ◀ 다음 진입 / 2-c ⏳ / 2-d ⏳) → 3~6번 ⏳
 ```
 
-**다음 진입점**: To-Do 2번-b — `@SystemAction` 세분화 + 테스트 강화 (아래 §5 참조)
+| 항목 | 값 |
+|---|---|
+| **현재 진입점** | To-Do 2번-b — `@SystemAction` 세분화 + 테스트 강화 (§5) |
+| **최신 커밋** | `ab180ae` — feat(cache): forRoot의 cache 슬롯으로 외부 어댑터 주입 지원 |
+| **다음 체크포인트** | 2-b 완료 후 `/eval` 호출 + 회고 누적 건수 확인 |
+| **다음 회고 시점** | 평가 20건 누적 시 `/eval-review` (Opus) |
+| **블로커** | 없음 |
+| **마지막 갱신** | 2026-05-13 |
+
+### 매 세션 시작 시 자가 점검
+
+```bash
+# 1. 현재 브랜치/미커밋 변경 확인
+git status
+
+# 2. 빌드/테스트 그린 라인 유지 확인
+npx tsc -p tsconfig.build.json --noEmit && npx jest
+
+# 3. origin과 동기화 상태 확인
+git log --oneline origin/main..HEAD
+git log --oneline HEAD..origin/main
+```
+
+위 3개가 깨끗하지 않으면 신규 작업 진입 금지. 우선 정리한다.
 
 ---
 
@@ -20,15 +45,15 @@
 
 원본 To-Do 리스트 (6 카테고리):
 
-| # | 카테고리 | 핵심 작업 |
-|---|---|---|
-| **0** | (재정렬로 추가) v0.1 약속 완성 | Subscriber 자동 등록, @Cacheable DI 연결, 와이어링 정리 |
-| 1 | 안정화 및 문서화 | README 정밀 범위, runWithoutTenant 가이드, examples 보강, e2e 커버리지 |
-| 2 | 기능 확장 | 캐시 어댑터 DI, @SystemAction 세분화, Bull/BullMQ, Prisma |
-| 3 | 보안/안정성 | Postgres RLS(v0.3), cross-tenant 감사 로그, strict=false 경고 체계 |
-| 4 | 개발자 경험 | 타입 추론 개선, NestJS 11.x 호환, 실행 가능한 예제, 에러 메시지 한/영 |
-| 5 | 배포/운영 | prepublishOnly lint, CHANGELOG, CI/CD, 첫 공식 릴리즈 |
-| 6 | 문서/커뮤니티 | FAQ/트러블슈팅, GitHub 템플릿, CONTRIBUTING.md |
+| # | 카테고리 | 핵심 작업 | 상태 |
+|---|---|---|---|
+| **0** | (재정렬로 추가) v0.1 약속 완성 | Subscriber 자동 등록, @Cacheable DI 연결, 와이어링 정리 | ✅ |
+| 1 | 안정화 및 문서화 | README 정밀 범위, runWithoutTenant 가이드, examples 보강, e2e 커버리지 | ✅ |
+| 2 | 기능 확장 | 캐시 어댑터 DI, @SystemAction 세분화, Bull/BullMQ, Prisma | 🔄 |
+| 3 | 보안/안정성 | Postgres RLS(v0.3), cross-tenant 감사 로그, strict=false 경고 체계 | ⏳ |
+| 4 | 개발자 경험 | 타입 추론 개선, NestJS 11.x 호환, 실행 가능한 예제, 에러 메시지 한/영 | ⏳ |
+| 5 | 배포/운영 | prepublishOnly lint, CHANGELOG, CI/CD, 첫 공식 릴리즈 | ⏳ |
+| 6 | 문서/커뮤니티 | FAQ/트러블슈팅, GitHub 템플릿, CONTRIBUTING.md | ⏳ |
 
 ### 우선순위 재정렬 (직전 점검 반영)
 
@@ -61,6 +86,11 @@
 - **부수 정리**: `forRoutes`를 wildcard 대신 `{ path, method }` 형태로,
   DynamicModule에 `global: true` 명시.
 
+### 이 단계에서 학습한 함정 → [critical-notes.md](./critical-notes.md)
+- forRoutes wildcard 함정
+- Subscriber 자동 등록 시 ModuleRef 패턴
+- @Cacheable DI fallback 패턴
+
 ---
 
 ## 3. ✅ To-Do 1번 — 안정화 및 문서화
@@ -85,7 +115,7 @@
 - **e2e 시나리오 4 → 8개**: `findBy` 자동 WHERE, QueryBuilder.getMany 자동
   andWhere, cross-tenant PK 격리, strict throw 검증.
 
-### 작업 중 발견·수정한 버그
+### 작업 중 발견·수정한 버그 (모두 [critical-notes.md](./critical-notes.md) 등재)
 
 - **isSystemAction 머지 버그**: `applyTenantToFindOptions`가
   `runWithoutTenant` 안에서도 머지를 진행해 `WHERE tenantId=null`이 박힘.
@@ -111,7 +141,13 @@
 
 ### 2-b ◀ **다음 진입점** — `@SystemAction` 세분화 + 테스트 강화
 
-해야 할 일:
+#### 진입 전 체크리스트
+- [ ] [critical-notes.md](./critical-notes.md) §시스템 작업 패턴 재독
+- [ ] `src/decorators/require-tenant.decorator.ts` 클래스/메서드 레벨 wrap 로직 파악
+- [ ] `src/decorators/system-action.decorator.ts` 메타데이터 키 확인
+- [ ] `test/unit/` 기존 데코레이터 spec 패턴 파악
+
+#### 해야 할 일
 1. `forRoot.allowSystemActions` 옵션이 인터페이스에만 있고 실제 동작에
    연결 안 되어 있음. `@RequireTenant` wrap 로직에서 이 옵션을 읽어
    "켜져 있을 때만 `@SystemAction` 우회를 허용" 정책 적용.
@@ -122,6 +158,13 @@
    - `allowSystemActions: false` → `@SystemAction`이 박혀 있어도 throw
    - `allowSystemActions: true` → `@SystemAction` 메서드는 통과
    - 시스템 작업 내부에서 `runWithTenant`로 재진입하는 패턴
+
+#### 완료 정의 (DoD)
+- [ ] 위 3가지 모두 구현
+- [ ] `npx tsc -p tsconfig.build.json --noEmit` 통과
+- [ ] `npx jest` 통과 (신규 테스트 포함)
+- [ ] 커밋 + push 후 사용자에게 보고
+- [ ] `/eval` 호출하여 평가 기록
 
 ### 2-c ⏳ Bull/BullMQ `@TenantContext` 실제 구현 + 예시
 
@@ -147,16 +190,20 @@
 
 ## 6. 검증 현황 스냅샷
 
-| 항목 | 상태 |
-|---|---|
-| 타입체크 (`tsc --noEmit`) | ✅ 깨끗 |
-| Jest | ✅ 10 suites / 40 tests pass |
-| origin/main 동기화 | ✅ 모든 커밋 푸시 완료 |
-| 최신 커밋 | `ab180ae` |
+| 항목 | 상태 | 마지막 확인 |
+|---|---|---|
+| 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-13 |
+| Jest | ✅ 10 suites / 40 tests pass | 2026-05-13 |
+| origin/main 동기화 | ✅ 모든 커밋 푸시 완료 | 2026-05-13 |
+| 최신 커밋 | `ab180ae` | 2026-05-13 |
+
+> 단계 마무리마다 이 표를 새 날짜로 갱신한다. "마지막 확인"이 7일 이상 지나면 신규 작업 진입 전 재검증.
 
 ---
 
 ## 7. 작업 운영 컨벤션
+
+상세는 [claude.md](./claude.md) §3.
 
 - **마일스톤 단위 커밋**: 각 단계 끝에서 빌드+테스트 통과 확인 후 1 커밋.
 - **커밋 메시지**: conventional prefix(`feat`/`docs`/`test`/`fix`) + scope +
@@ -165,11 +212,26 @@
 - **검증 사이클**: `npx tsc -p tsconfig.build.json --noEmit && npx jest`.
 - **단계 마무리 시 사용자에게 보고**: 무엇을 끝냈고, 다음 진입점은 무엇이고,
   몇 가지 선택지가 있는지.
+- **단계 마무리 시 `/eval` 호출**: 평가 누적이 회고의 원료. 빼먹지 않는다.
 
 ---
 
-## 8. 변경 이력
+## 8. 회고 누적 (Retrospective Log)
+
+`/eval-review` (Opus 회고) 결과를 여기에 1~2주마다 요약한다. 상세는
+`~/.claude/evaluations.md`.
+
+| 회고 일자 | 누적 평가 건수 | 채택된 패턴 (4건+) | claude.md 반영 |
+|---|---|---|---|
+| (예정) | — | — | — |
+
+> 다음 회고: 평가 20건 누적 시점에 `/eval-review` 실행.
+
+---
+
+## 9. 변경 이력
 
 | 날짜 | 변경 |
 |---|---|
 | 2026-05-13 | 초안 작성 — 0단계 / 1번 / 2-a 완료 시점에서 진행 상황 정리 |
+| 2026-05-17 | 하네스 엔지니어링 셋업 반영: 자가 점검 체크리스트, 진입 체크리스트, 회고 누적 슬롯, claude.md/critical-notes.md/workflow.md 링크 |
