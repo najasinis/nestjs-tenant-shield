@@ -148,14 +148,19 @@ git log --oneline HEAD..origin/main
 - [ ] `test/unit/` 기존 데코레이터 spec 패턴 파악
 
 #### 해야 할 일
-1. `forRoot.allowSystemActions` 옵션이 인터페이스에만 있고 실제 동작에
-   연결 안 되어 있음. `@RequireTenant` wrap 로직에서 이 옵션을 읽어
-   "켜져 있을 때만 `@SystemAction` 우회를 허용" 정책 적용.
+1. `forRoot.allowSystemActions`가 `tenant-context.middleware.ts:52`에서는 이미
+   사용되지만 `@RequireTenant`의 `wrapMethod`에서는 안 읽히는 비대칭 해소.
+   채택 방안: **글로벌 옵션 레지스트리 패턴** (cache.registry와 동일 패턴).
+   `src/options/options.registry.ts` 신설 → `setGlobalOptions` / `getGlobalOptions`,
+   `TenantShieldModule` bootstrap 시 `setGlobalOptions(this.options)` 호출,
+   `wrapMethod`가 `getGlobalOptions()?.allowSystemActions`를 fallback으로 읽음.
 2. `@RequireTenant` **메서드 레벨** + `@SystemAction` 조합 동작 명세화.
-   (현재는 클래스 레벨 wrapping에서만 SYSTEM_ACTION 메타데이터를 검사 →
-   메서드 레벨에 직접 적용된 경우 동작 정의 필요)
+   현재 클래스 레벨 wrapping(`require-tenant.decorator.ts:78-79`)에서만
+   `SYSTEM_ACTION_METADATA`를 검사 → 메서드 레벨(`:57-60`) 분기에도 동일 검사 추가.
+   데코레이터 적용 순서 의존성을 피하려면 wrap 내부 런타임 검사가 더 안전한지
+   테스트로 검증.
 3. `test/unit/system-action.decorator.spec.ts` 신설:
-   - `allowSystemActions: false` → `@SystemAction`이 박혀 있어도 throw
+   - `allowSystemActions: false` (기본) → `@SystemAction`이 박혀 있어도 throw
    - `allowSystemActions: true` → `@SystemAction` 메서드는 통과
    - 시스템 작업 내부에서 `runWithTenant`로 재진입하는 패턴
 
@@ -192,10 +197,10 @@ git log --oneline HEAD..origin/main
 
 | 항목 | 상태 | 마지막 확인 |
 |---|---|---|
-| 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-13 |
-| Jest | ✅ 10 suites / 40 tests pass | 2026-05-13 |
-| origin/main 동기화 | ✅ 모든 커밋 푸시 완료 | 2026-05-13 |
-| 최신 커밋 | `ab180ae` | 2026-05-13 |
+| 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-20 |
+| Jest | ✅ 10 suites / 40 tests pass | 2026-05-20 |
+| origin/main 동기화 | ✅ 모든 커밋 푸시 완료 | 2026-05-20 |
+| 최신 커밋 | `1df8a7c` | 2026-05-20 |
 
 > 단계 마무리마다 이 표를 새 날짜로 갱신한다. "마지막 확인"이 7일 이상 지나면 신규 작업 진입 전 재검증.
 
@@ -235,3 +240,4 @@ git log --oneline HEAD..origin/main
 |---|---|
 | 2026-05-13 | 초안 작성 — 0단계 / 1번 / 2-a 완료 시점에서 진행 상황 정리 |
 | 2026-05-17 | 하네스 엔지니어링 셋업 반영: 자가 점검 체크리스트, 진입 체크리스트, 회고 누적 슬롯, claude.md/critical-notes.md/workflow.md 링크 |
+| 2026-05-20 | §6 검증 스냅샷 재확인 (1df8a7c, TSC clean, 40/40 pass). §4 2-b 1번 설명을 코드 grep 결과에 맞춰 수정 (middleware는 이미 연결, wrapMethod 미연결) — 글로벌 옵션 레지스트리 채택 결정. |
