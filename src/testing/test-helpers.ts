@@ -40,6 +40,10 @@ import { tenantContextStorage } from '../context/tenant-context.storage';
 // (src/context를 통해 자동 export) 에서 그대로 가져다 쓰면 됩니다.
 // 여기서 또 export 하면 중복 export 충돌이 발생하므로 제외했습니다.
 
+// forRoot 없이 단위 테스트할 때 afterEach에서 전역 상태 리셋.
+export { resetGlobalOptions } from '../options/options.registry';
+export { resetGlobalCache } from '../cache/cache.registry';
+
 /**
  * 현재 AsyncLocalStorage에 깔린 tenant ID가 예상과 같은지 단정.
  *

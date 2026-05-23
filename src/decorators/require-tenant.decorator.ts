@@ -129,7 +129,10 @@ function wrapMethod(
       const strict = options.strictMode !== false;
       if (strict) {
         throw new MissingTenantContextError(
-          `@RequireTenant: tenant 컨텍스트가 없습니다. ${String(propertyKey)} 호출 전 미들웨어/테스트 헬퍼를 점검하세요.`,
+          `@RequireTenant: tenant 컨텍스트 없음 — "${String(propertyKey)}" 호출 전 확인:\n` +
+            `  1) TenantContextMiddleware가 이 라우트에 적용됐는지\n` +
+            `  2) 테스트라면 runWithTenant()로 감쌌는지\n` +
+            `  3) 시스템 작업이라면 @SystemAction + forRoot({ allowSystemActions: true }) 조합인지`,
           'decorator',
         );
       } else {
