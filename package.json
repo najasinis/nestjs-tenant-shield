@@ -94,7 +94,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jinyeongjung/nestjs-tenant-shield"
+    "url": "git+https://github.com/jinyeongjung/nestjs-tenant-shield.git"
   },
   "//engines-comment": "Node.js 18+ 필요. AsyncLocalStorage가 18부터 안정화되었기 때문.",
   "engines": {
