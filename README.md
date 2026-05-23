@@ -7,11 +7,9 @@
 
 ## ⚠️ 현재 상태 (솔직한 안내)
 
-- 이 저장소는 현재 **설계/스펙 단계**입니다.
-- `docs/`, `claude/` 문서가 먼저 정리된 상태이며, **실제 배포 가능한 패키지 코드는 아직 없습니다**.
-- 즉, 지금은 "차별적인 제품"보다 "차별적인 설계"에 가까운 단계입니다.
-
-이 README의 코드 예시는 **목표 API**를 설명하기 위한 것이며, 현재 바로 설치해서 실행 가능한 상태를 보장하지 않습니다.
+- v0.1이 배포되었습니다.
+- v0.1은 TypeORM + discriminator 패턴 중심이며, v0.2 이후 기능(Bull/BullMQ, Prisma, RLS)은 계획 단계입니다.
+- README 예시는 v0.1 기준이며, v0.2 기능은 별도 표기합니다.
 
 ## 🎯 왜 만들었나요?
 
@@ -121,7 +119,6 @@ export class StudentsService {
 ## 📦 설치
 
 ```bash
-# ⚠️ 아직 npm 미배포 상태 — 아래는 v0.1.0 배포 시 사용할 명령
 pnpm add nestjs-tenant-shield   # 라이브러리 본체 설치
 
 # TypeORM 사용 시 추가 설치
@@ -145,7 +142,7 @@ pnpm add @prisma/client         # Prisma Client 연동 준비
 
 ## 🚀 빠른 시작
 
-아래는 **목표 API 예시**입니다. 현재 저장소는 구현 전 단계이므로, 실행 가능한 예제는 마일스톤 진행 후 추가됩니다.
+아래는 v0.1 기준 API 예시입니다. v0.2 이상 기능은 별도 표기합니다.
 
 ### 1단계: 모듈 설정
 
@@ -187,27 +184,7 @@ export class Student {
   
   @Column()
   name: string;
-  
-=======
-// TypeORM 엔티티 데코레이터 import
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-// students 테이블에 매핑될 엔티티
-@Entity()
-export class Student {
-  // PK 자동 증가 컬럼
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  // 멀티테넌시 격리를 위한 핵심 컬럼
-  @Column()
-  tenantId: string;
-
-  // 학생 이름
-  @Column()
-  name: string;
-
-  // 성적
   @Column()
   grade: number;
 }

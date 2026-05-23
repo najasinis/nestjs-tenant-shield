@@ -151,6 +151,21 @@ let patchedTenantField: string | null = null;
 let isRepositoryPatched = false;
 let patchedOptions: TenantShieldOptions | null = null;
 
+let _origGetMany: typeof SelectQueryBuilder.prototype.getMany | null = null;
+let _origGetOne: typeof SelectQueryBuilder.prototype.getOne | null = null;
+let _origGetManyAndCount: typeof SelectQueryBuilder.prototype.getManyAndCount | null = null;
+let _origGetCount: typeof SelectQueryBuilder.prototype.getCount | null = null;
+let _origGetRawMany: typeof SelectQueryBuilder.prototype.getRawMany | null = null;
+let _origGetRawOne: typeof SelectQueryBuilder.prototype.getRawOne | null = null;
+let _origUpdateExecute: typeof UpdateQueryBuilder.prototype.execute | null = null;
+let _origDeleteExecute: typeof DeleteQueryBuilder.prototype.execute | null = null;
+let _origFind: typeof Repository.prototype.find | null = null;
+let _origFindOne: typeof Repository.prototype.findOne | null = null;
+let _origFindBy: typeof Repository.prototype.findBy | null = null;
+let _origFindOneBy: typeof Repository.prototype.findOneBy | null = null;
+let _origCount: typeof Repository.prototype.count | null = null;
+let _origSave: typeof Repository.prototype.save | null = null;
+
 function patchQueryBuildersOnce(options: TenantShieldOptions): void {
   if (isQueryBuilderPatched) {
     if (patchedTenantField && patchedTenantField !== options.tenantIdField) {
@@ -165,52 +180,52 @@ function patchQueryBuildersOnce(options: TenantShieldOptions): void {
   isQueryBuilderPatched = true;
   patchedTenantField = options.tenantIdField;
 
-  const originalGetMany = SelectQueryBuilder.prototype.getMany;
+  _origGetMany = SelectQueryBuilder.prototype.getMany;
   SelectQueryBuilder.prototype.getMany = function (this: SelectQueryBuilder<any>, ...args: any[]) {
     applyTenantWhereIfNeeded(this, options);
-    return originalGetMany.apply(this, args as any);
+    return _origGetMany!.apply(this, args as any);
   } as any;
 
-  const originalGetOne = SelectQueryBuilder.prototype.getOne;
+  _origGetOne = SelectQueryBuilder.prototype.getOne;
   SelectQueryBuilder.prototype.getOne = function (this: SelectQueryBuilder<any>, ...args: any[]) {
     applyTenantWhereIfNeeded(this, options);
-    return originalGetOne.apply(this, args as any);
+    return _origGetOne!.apply(this, args as any);
   } as any;
 
-  const originalGetManyAndCount = SelectQueryBuilder.prototype.getManyAndCount;
+  _origGetManyAndCount = SelectQueryBuilder.prototype.getManyAndCount;
   SelectQueryBuilder.prototype.getManyAndCount = function (this: SelectQueryBuilder<any>, ...args: any[]) {
     applyTenantWhereIfNeeded(this, options);
-    return originalGetManyAndCount.apply(this, args as any);
+    return _origGetManyAndCount!.apply(this, args as any);
   } as any;
 
-  const originalGetCount = SelectQueryBuilder.prototype.getCount;
+  _origGetCount = SelectQueryBuilder.prototype.getCount;
   SelectQueryBuilder.prototype.getCount = function (this: SelectQueryBuilder<any>, ...args: any[]) {
     applyTenantWhereIfNeeded(this, options);
-    return originalGetCount.apply(this, args as any);
+    return _origGetCount!.apply(this, args as any);
   } as any;
 
-  const originalGetRawMany = SelectQueryBuilder.prototype.getRawMany;
+  _origGetRawMany = SelectQueryBuilder.prototype.getRawMany;
   SelectQueryBuilder.prototype.getRawMany = function (this: SelectQueryBuilder<any>, ...args: any[]) {
     applyTenantWhereIfNeeded(this, options);
-    return originalGetRawMany.apply(this, args as any);
+    return _origGetRawMany!.apply(this, args as any);
   } as any;
 
-  const originalGetRawOne = SelectQueryBuilder.prototype.getRawOne;
+  _origGetRawOne = SelectQueryBuilder.prototype.getRawOne;
   SelectQueryBuilder.prototype.getRawOne = function (this: SelectQueryBuilder<any>, ...args: any[]) {
     applyTenantWhereIfNeeded(this, options);
-    return originalGetRawOne.apply(this, args as any);
+    return _origGetRawOne!.apply(this, args as any);
   } as any;
 
-  const originalUpdateExecute = UpdateQueryBuilder.prototype.execute;
+  _origUpdateExecute = UpdateQueryBuilder.prototype.execute;
   UpdateQueryBuilder.prototype.execute = function (this: UpdateQueryBuilder<any>, ...args: any[]) {
     applyTenantWhereIfNeeded(this, options);
-    return originalUpdateExecute.apply(this, args as any);
+    return _origUpdateExecute!.apply(this, args as any);
   } as any;
 
-  const originalDeleteExecute = DeleteQueryBuilder.prototype.execute;
+  _origDeleteExecute = DeleteQueryBuilder.prototype.execute;
   DeleteQueryBuilder.prototype.execute = function (this: DeleteQueryBuilder<any>, ...args: any[]) {
     applyTenantWhereIfNeeded(this, options);
-    return originalDeleteExecute.apply(this, args as any);
+    return _origDeleteExecute!.apply(this, args as any);
   } as any;
 }
 
@@ -295,61 +310,61 @@ function patchRepositoriesOnce(options: TenantShieldOptions): void {
 
   // 각 patch에 try/catch + Promise.reject — 컨텍스트 누락 throw가 NestJS의
   // async 흐름에서 자연스럽게 catch되도록 sync throw를 async rejection으로 통일.
-  const originalFind = Repository.prototype.find;
+  _origFind = Repository.prototype.find;
   Repository.prototype.find = function (this: Repository<any>, options?: any) {
     try {
       const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
-      return originalFind.call(this, patched);
+      return _origFind!.call(this, patched);
     } catch (err) {
       return Promise.reject(err);
     }
   } as any;
 
-  const originalFindOne = Repository.prototype.findOne;
+  _origFindOne = Repository.prototype.findOne;
   Repository.prototype.findOne = function (this: Repository<any>, options?: any) {
     try {
       const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
-      return originalFindOne.call(this, patched);
+      return _origFindOne!.call(this, patched);
     } catch (err) {
       return Promise.reject(err);
     }
   } as any;
 
-  const originalFindBy = Repository.prototype.findBy;
+  _origFindBy = Repository.prototype.findBy;
   Repository.prototype.findBy = function (this: Repository<any>, where: any) {
     try {
       const patched = applyTenantToWhere(this, where);
-      return originalFindBy.call(this, patched);
+      return _origFindBy!.call(this, patched);
     } catch (err) {
       return Promise.reject(err);
     }
   } as any;
 
-  const originalFindOneBy = Repository.prototype.findOneBy;
+  _origFindOneBy = Repository.prototype.findOneBy;
   Repository.prototype.findOneBy = function (this: Repository<any>, where: any) {
     try {
       const patched = applyTenantToWhere(this, where);
-      return originalFindOneBy.call(this, patched);
+      return _origFindOneBy!.call(this, patched);
     } catch (err) {
       return Promise.reject(err);
     }
   } as any;
 
-  const originalCount = Repository.prototype.count;
+  _origCount = Repository.prototype.count;
   Repository.prototype.count = function (this: Repository<any>, options?: any) {
     try {
       const patched = applyTenantToFindOptions(this, options, options ? options : undefined);
-      return originalCount.call(this, patched);
+      return _origCount!.call(this, patched);
     } catch (err) {
       return Promise.reject(err);
     }
   } as any;
 
-  const originalSave = Repository.prototype.save;
+  _origSave = Repository.prototype.save;
   Repository.prototype.save = function (this: Repository<any>, entity: any, options?: any) {
     try {
       const patchedEntity = applyTenantToSaveEntity(this, entity, options);
-      return originalSave.call(this, patchedEntity, options);
+      return _origSave!.call(this, patchedEntity, options);
     } catch (err) {
       return Promise.reject(err);
     }
@@ -479,4 +494,30 @@ function isTenantAwareRepository(repo: Repository<any>, _input: any): boolean {
   return metadata.columns.some(
     (column: any) => column.propertyName === tenantField || column.databaseName === tenantField,
   );
+}
+
+/**
+ * 모든 prototype 패치를 원복하고 모듈 상태를 초기화한다.
+ * e2e 테스트의 afterAll에서 호출해 테스트 간 오염을 방지한다.
+ */
+export function unpatch(): void {
+  if (_origGetMany) { SelectQueryBuilder.prototype.getMany = _origGetMany; _origGetMany = null; }
+  if (_origGetOne) { SelectQueryBuilder.prototype.getOne = _origGetOne; _origGetOne = null; }
+  if (_origGetManyAndCount) { SelectQueryBuilder.prototype.getManyAndCount = _origGetManyAndCount; _origGetManyAndCount = null; }
+  if (_origGetCount) { SelectQueryBuilder.prototype.getCount = _origGetCount; _origGetCount = null; }
+  if (_origGetRawMany) { SelectQueryBuilder.prototype.getRawMany = _origGetRawMany; _origGetRawMany = null; }
+  if (_origGetRawOne) { SelectQueryBuilder.prototype.getRawOne = _origGetRawOne; _origGetRawOne = null; }
+  if (_origUpdateExecute) { UpdateQueryBuilder.prototype.execute = _origUpdateExecute; _origUpdateExecute = null; }
+  if (_origDeleteExecute) { DeleteQueryBuilder.prototype.execute = _origDeleteExecute; _origDeleteExecute = null; }
+  if (_origFind) { Repository.prototype.find = _origFind; _origFind = null; }
+  if (_origFindOne) { Repository.prototype.findOne = _origFindOne; _origFindOne = null; }
+  if (_origFindBy) { Repository.prototype.findBy = _origFindBy; _origFindBy = null; }
+  if (_origFindOneBy) { Repository.prototype.findOneBy = _origFindOneBy; _origFindOneBy = null; }
+  if (_origCount) { Repository.prototype.count = _origCount; _origCount = null; }
+  if (_origSave) { Repository.prototype.save = _origSave; _origSave = null; }
+
+  isQueryBuilderPatched = false;
+  isRepositoryPatched = false;
+  patchedTenantField = null;
+  patchedOptions = null;
 }

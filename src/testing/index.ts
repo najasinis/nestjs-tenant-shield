@@ -9,3 +9,4 @@
  * (subpath import 지원은 package.json "exports" 필드 설정 후 활성화 — v0.1.x 예정)
  */
 export * from './test-helpers';
+export { unpatch } from '../typeorm/tenant.subscriber';
