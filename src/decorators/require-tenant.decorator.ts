@@ -3,6 +3,7 @@ import { getCurrentTenantId } from '../context/get-current-tenant-id';
 import { tenantContextStorage } from '../context/tenant-context.storage';
 import { MissingTenantContextError } from '../errors/missing-tenant-context.error';
 import { REQUIRE_TENANT_METADATA, SYSTEM_ACTION_METADATA } from '../constants';
+import { getGlobalOptions } from '../options/options.registry';
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -110,10 +111,19 @@ function wrapMethod(
   descriptor.value = async function (this: unknown, ...args: unknown[]) {
     const store = tenantContextStorage.getStore();
     const tenantId = getCurrentTenantId();
-    const isSystemAction = store?.isSystemAction === true;
 
-    // 시스템 작업으로 명시되면 통과 허용 (allowSystem 옵션 또는 runWithoutTenant 진입).
-    if (!tenantId && !options.allowSystem && !isSystemAction) {
+    // 런타임 컨텍스트 플래그: runWithoutTenant()로 진입한 경우.
+    const isSystemActionRuntime = store?.isSystemAction === true;
+    // 데코레이터 메타데이터 플래그: @SystemAction()이 originalMethod에 붙은 경우.
+    // 올바른 적용 순서(@RequireTenant 위, @SystemAction 아래)일 때만 유효하다.
+    const isSystemActionDecorated =
+      Reflect.getMetadata(SYSTEM_ACTION_METADATA, originalMethod) === true;
+    // forRoot.allowSystemActions: true일 때만 데코레이터 우회 허용.
+    const globalAllowSystemActions = getGlobalOptions()?.allowSystemActions ?? false;
+    const shouldBypass =
+      isSystemActionRuntime || (isSystemActionDecorated && globalAllowSystemActions);
+
+    if (!tenantId && !options.allowSystem && !shouldBypass) {
       // strictMode가 명시적으로 false면 경고만 남기고 통과,
       // 그 외에는 (기본 true) 즉시 throw.
       const strict = options.strictMode !== false;

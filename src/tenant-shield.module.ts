@@ -21,6 +21,7 @@ import { TENANT_SHIELD_CACHE, TENANT_SHIELD_OPTIONS } from './constants';
 import { TenantContextMiddleware } from './middleware/tenant-context.middleware';
 import { InMemoryTenantAwareCacheService, TenantAwareCacheService } from './cache/cache.service';
 import { setGlobalCache } from './cache/cache.registry';
+import { setGlobalOptions } from './options/options.registry';
 import { TenantSubscriber } from './typeorm/tenant.subscriber';
 
 /**
@@ -67,6 +68,8 @@ export class TenantShieldModule implements NestModule, OnApplicationBootstrap {
   constructor(
     private readonly moduleRef: ModuleRef,
     private readonly subscriber: TenantSubscriber,
+    @Inject(TENANT_SHIELD_OPTIONS)
+    private readonly options: TenantShieldOptions,
     @Inject(TENANT_SHIELD_CACHE)
     private readonly cache: TenantAwareCacheService,
   ) {}
@@ -199,6 +202,10 @@ export class TenantShieldModule implements NestModule, OnApplicationBootstrap {
           '(TypeORM을 사용하지 않는 경우 정상)',
       );
     }
+
+    // 2) 글로벌 옵션 registry에 forRoot 옵션 등록.
+    //    @RequireTenant wrapMethod가 런타임에 allowSystemActions 등을 읽기 위해 사용.
+    setGlobalOptions(this.options);
 
     // 3) 캐시 인스턴스를 글로벌 registry에 등록.
     //    @Cacheable 데코레이터가 사용자 클래스에 cacheService 프로퍼티가 없을 때
