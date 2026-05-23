@@ -170,7 +170,7 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 
 ### 2-e ✅ PostgreSQL e2e (Docker testcontainers)
 
-**커밋**: (이번 커밋) — `test(e2e): PostgreSQL Docker testcontainers e2e 추가`
+**커밋**: `b01f4b6` — `test(e2e): PostgreSQL Docker testcontainers e2e 추가 + v0.1 scope 확정`
 
 - `test/e2e/postgres-integration.spec.ts` 신설.
 - Docker 미실행 환경에서 자동 skip (`isDockerAvailable()` 가드).
@@ -193,8 +193,8 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 |---|---|---|
 | 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-23 |
 | Jest | ✅ 11 suites / 47 tests pass (PG suite: Docker 없으면 skip) | 2026-05-23 |
-| origin/main 동기화 | ⏳ 이번 커밋 push 예정 | 2026-05-23 |
-| 최신 커밋 | (이번 커밋) | 2026-05-23 |
+| origin/main 동기화 | ⏳ push 예정 | 2026-05-23 |
+| 최신 커밋 | `b01f4b6` | 2026-05-23 |
 
 > 단계 마무리마다 이 표를 새 날짜로 갱신한다. "마지막 확인"이 7일 이상 지나면 신규 작업 진입 전 재검증.
 
