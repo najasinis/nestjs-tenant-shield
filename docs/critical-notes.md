@@ -72,17 +72,46 @@ await runWithoutTenant(async () => {
 
 ---
 
-### 1.3 `@SystemAction` + `@RequireTenant` 조합 명세 미정
+### 1.3 `@SystemAction` + `@RequireTenant` 데코레이터 적용 순서
 
-**증상 (예상)**: 메서드 레벨 `@RequireTenant` + `@SystemAction` 조합에서 SYSTEM_ACTION 메타데이터가 검사 안 됨.
+**증상**: `@SystemAction`과 `@RequireTenant`를 역순으로 적용하면 `forRoot.allowSystemActions: true`여도 우회가 작동하지 않는다.
 
-**원인**: 현재 SYSTEM_ACTION 검사가 **클래스 레벨 wrapping**에서만 이루어짐. 메서드 레벨 wrap 경로에서는 미반영.
+**원인**: TypeScript 메서드 데코레이터는 **아래(소스에서 가까운 쪽)부터 적용**된다.
 
-**올바른 패턴 (구현 예정)**:
-- `forRoot.allowSystemActions: true`일 때만 `@SystemAction`이 우회 허용.
-- 클래스 레벨 / 메서드 레벨 둘 다에서 SYSTEM_ACTION 메타데이터 검사 통일.
+```typescript
+// ✅ Case A — 올바른 순서: @RequireTenant 위, @SystemAction 아래
+@RequireTenant()   // 2번째 적용 → originalMethod 에 메타데이터가 있어서 isSystemActionDecorated = true
+@SystemAction()    // 1번째 적용 → originalMethod 에 SYSTEM_ACTION_METADATA 세팅
+async run() {}
 
-**출처**: To-Do 2-b (다음 작업 항목, [process.md](./process.md) §4 참조)
+// ❌ Case B — 잘못된 순서: @SystemAction 위, @RequireTenant 아래
+@SystemAction()    // 2번째 적용 → descriptor.value = wrapMethod이 만든 wrapped fn에 메타데이터 세팅
+@RequireTenant()   // 1번째 적용 → originalMethod(메타데이터 없음)를 캡처하고 wrapping
+async run() {}
+```
+
+Case B에서 `Reflect.getMetadata(SYSTEM_ACTION_METADATA, originalMethod)` = `undefined` →
+`isSystemActionDecorated = false` → `allowSystemActions: true`여도 `shouldBypass = false` → throw.
+
+**올바른 패턴**:
+- 메서드에 두 데코레이터를 함께 쓸 때는 **반드시 `@RequireTenant` 위, `@SystemAction` 아래** 순서.
+- 클래스 레벨 `@RequireTenant` + 메서드 레벨 `@SystemAction`은 순서 문제 없음 (클래스 wrapping이 prototype 순회 시점에 메타데이터를 읽으므로).
+
+```typescript
+// ✅ 메서드 레벨 조합 정석
+@RequireTenant()
+@SystemAction()
+async dailyCron() { ... }
+
+// ✅ 클래스 레벨은 순서 무관 (이미 올바르게 동작)
+@RequireTenant()
+class MyService {
+  @SystemAction()
+  async dailyCron() { ... }
+}
+```
+
+**출처**: 커밋 `82422e8` (2-b 구현 중 발견, `test/unit/system-action.decorator.spec.ts` Case B 케이스로 명세화)
 
 ---
 
@@ -303,3 +332,4 @@ Repository.prototype.find = function (...args) {
 | 날짜 | 변경 |
 |---|---|
 | 2026-05-17 | 초안 작성 — 0단계/1번/2-a에서 발견한 함정 집결 |
+| 2026-05-23 | §1.3 업데이트 — 2-b 구현에서 발견한 데코레이터 적용 순서 함정 명세화 |
