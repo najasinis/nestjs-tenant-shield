@@ -11,16 +11,16 @@
 ## 📌 지금 여기 (Live Dashboard)
 
 ```
-0단계 ✅ → 1번 ✅ → 2번 🔄 (2-a ✅ / 2-b ✅ / 2-c ⏳ / 2-d ⏳) → 3~6번 ⏳
+0단계 ✅ → 1번 ✅ → 2번 ✅ (2-a ✅ / 2-b ✅ / 2-c → v0.2 / 2-d → v0.2) → 3~6번 ⏳
 ```
 
 | 항목 | 값 |
 |---|---|
-| **현재 진입점** | v0.1 publish 결정 — 2-c/2-d 없이 publish 가능한지 확인 (PRD §7은 YES) |
-| **최신 커밋** | `82422e8` — feat(decorator): @SystemAction + allowSystemActions wrapMethod 연결 (#2-b) |
-| **다음 체크포인트** | publish scope 결정 → To-Do 4(DX) → To-Do 5(npm publish) |
+| **현재 진입점** | To-Do 4(DX 최소 체크) → To-Do 5(npm publish) |
+| **최신 커밋** | `2601bae` |
+| **다음 체크포인트** | To-Do 4 체크리스트 완료 → prepublishOnly 통과 → npm publish |
 | **다음 회고 시점** | 평가 20건 누적 시 `/eval-review` (Opus) |
-| **블로커** | v0.1 scope 결정 미완 (2-c/2-d → v0.2로 미룰지 여부) |
+| **블로커** | 없음 — 2-c/2-d v0.2 확정(PRD §7), PostgreSQL e2e 추가 완료 |
 | **마지막 갱신** | 2026-05-23 |
 
 ### 매 세션 시작 시 자가 점검
@@ -152,18 +152,29 @@ git log --oneline HEAD..origin/main
 - `test/unit/system-action.decorator.spec.ts` 신설 — 4 케이스 × 7 tests.
 
 **데코레이터 순서 발견**: 역순(`@SystemAction` 위)이면 `originalMethod`에 메타데이터가
-없어 `allowSystemActions: true`여도 우회 불가. 테스트로 명세화 완료. → [critical-notes.md §1.3](./critical-notes.md) 업데이트 필요.
+없어 `allowSystemActions: true`여도 우회 불가. 테스트로 명세화 완료. → [critical-notes.md §1.3](./critical-notes.md) 업데이트 완료.
 
-### 2-c ⏳ Bull/BullMQ `@TenantContext` 실제 구현 + 예시
+### 2-c → v0.2 Bull/BullMQ `@TenantContext` 실제 구현 + 예시
+
+PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 
 - 데코레이터 스켈레톤은 있으나 큐 통합 테스트와 예시 부재.
-- `examples/queue-bullmq/` 신설 검토.
+- `examples/queue-bullmq/` 신설은 v0.2에서 진행.
 
-### 2-d ⏳ Prisma 어댑터 스켈레톤
+### 2-d → v0.2 Prisma 어댑터 스켈레톤
 
-- `src/prisma/` 폴더 신설.
+PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
+
+- `src/prisma/` 폴더 신설은 v0.2에서 진행.
 - Prisma의 `$extends` 또는 미들웨어 기반 자동 `WHERE tenantId` 주입.
-- TypeORM 어댑터처럼 별도 ORM에 의존하지 않는 깔끔한 분리.
+
+### 2-e ✅ PostgreSQL e2e (Docker testcontainers)
+
+**커밋**: (이번 커밋) — `test(e2e): PostgreSQL Docker testcontainers e2e 추가`
+
+- `test/e2e/postgres-integration.spec.ts` 신설.
+- Docker 미실행 환경에서 자동 skip (`isDockerAvailable()` 가드).
+- 검증 시나리오: 자동 WHERE 격리 / cross-tenant INSERT 차단 / PK 접근 격리 / strict MissingTenantContextError / runWithoutTenant 전체 조회.
 
 ---
 
@@ -181,9 +192,9 @@ git log --oneline HEAD..origin/main
 | 항목 | 상태 | 마지막 확인 |
 |---|---|---|
 | 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-23 |
-| Jest | ✅ 11 suites / 47 tests pass | 2026-05-23 |
-| origin/main 동기화 | ✅ 모든 커밋 푸시 완료 | 2026-05-23 |
-| 최신 커밋 | `bb69df9` | 2026-05-23 |
+| Jest | ✅ 11 suites / 47 tests pass (PG suite: Docker 없으면 skip) | 2026-05-23 |
+| origin/main 동기화 | ⏳ 이번 커밋 push 예정 | 2026-05-23 |
+| 최신 커밋 | (이번 커밋) | 2026-05-23 |
 
 > 단계 마무리마다 이 표를 새 날짜로 갱신한다. "마지막 확인"이 7일 이상 지나면 신규 작업 진입 전 재검증.
 
@@ -225,3 +236,4 @@ git log --oneline HEAD..origin/main
 | 2026-05-17 | 하네스 엔지니어링 셋업 반영: 자가 점검 체크리스트, 진입 체크리스트, 회고 누적 슬롯, claude.md/critical-notes.md/workflow.md 링크 |
 | 2026-05-20 | §6 검증 스냅샷 재확인 (1df8a7c, TSC clean, 40/40 pass). §4 2-b 1번 설명을 코드 grep 결과에 맞춰 수정 (middleware는 이미 연결, wrapMethod 미연결) — 글로벌 옵션 레지스트리 채택 결정. |
 | 2026-05-23 | 2-b 완료 (82422e8). Live Dashboard 진입점→publish scope 결정으로 갱신. §6 스냅샷 47 tests로 업데이트. |
+| 2026-05-23 | 2-c/2-d → v0.2 확정(PRD §7). PostgreSQL e2e(2-e) 추가. Live Dashboard: To-Do 4→5 직행으로 갱신. |
