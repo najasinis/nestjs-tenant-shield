@@ -11,17 +11,17 @@
 ## 📌 지금 여기 (Live Dashboard)
 
 ```
-0단계 ✅ → 1번 ✅ → 2번 🔄 (2-a ✅ / 2-b ◀ 다음 진입 / 2-c ⏳ / 2-d ⏳) → 3~6번 ⏳
+0단계 ✅ → 1번 ✅ → 2번 🔄 (2-a ✅ / 2-b ✅ / 2-c ⏳ / 2-d ⏳) → 3~6번 ⏳
 ```
 
 | 항목 | 값 |
 |---|---|
-| **현재 진입점** | To-Do 2번-b — `@SystemAction` 세분화 + 테스트 강화 (§5) |
-| **최신 커밋** | `ab180ae` — feat(cache): forRoot의 cache 슬롯으로 외부 어댑터 주입 지원 |
-| **다음 체크포인트** | 2-b 완료 후 `/eval` 호출 + 회고 누적 건수 확인 |
+| **현재 진입점** | v0.1 publish 결정 — 2-c/2-d 없이 publish 가능한지 확인 (PRD §7은 YES) |
+| **최신 커밋** | `82422e8` — feat(decorator): @SystemAction + allowSystemActions wrapMethod 연결 (#2-b) |
+| **다음 체크포인트** | publish scope 결정 → To-Do 4(DX) → To-Do 5(npm publish) |
 | **다음 회고 시점** | 평가 20건 누적 시 `/eval-review` (Opus) |
-| **블로커** | 없음 |
-| **마지막 갱신** | 2026-05-13 |
+| **블로커** | v0.1 scope 결정 미완 (2-c/2-d → v0.2로 미룰지 여부) |
+| **마지막 갱신** | 2026-05-23 |
 
 ### 매 세션 시작 시 자가 점검
 
@@ -139,37 +139,20 @@ git log --oneline HEAD..origin/main
 - `examples/redis-cache/`: ioredis 같은 외부 SDK 위에 어댑터를 얇게
   작성하는 레퍼런스 + README에 세 가지 등록 패턴.
 
-### 2-b ◀ **다음 진입점** — `@SystemAction` 세분화 + 테스트 강화
+### 2-b ✅ `@SystemAction` 세분화 + 테스트 강화
 
-#### 진입 전 체크리스트
-- [ ] [critical-notes.md](./critical-notes.md) §시스템 작업 패턴 재독
-- [ ] `src/decorators/require-tenant.decorator.ts` 클래스/메서드 레벨 wrap 로직 파악
-- [ ] `src/decorators/system-action.decorator.ts` 메타데이터 키 확인
-- [ ] `test/unit/` 기존 데코레이터 spec 패턴 파악
+**커밋**: `82422e8` — `feat(decorator): @SystemAction + allowSystemActions wrapMethod 연결 (#2-b)`
 
-#### 해야 할 일
-1. `forRoot.allowSystemActions`가 `tenant-context.middleware.ts:52`에서는 이미
-   사용되지만 `@RequireTenant`의 `wrapMethod`에서는 안 읽히는 비대칭 해소.
-   채택 방안: **글로벌 옵션 레지스트리 패턴** (cache.registry와 동일 패턴).
-   `src/options/options.registry.ts` 신설 → `setGlobalOptions` / `getGlobalOptions`,
-   `TenantShieldModule` bootstrap 시 `setGlobalOptions(this.options)` 호출,
-   `wrapMethod`가 `getGlobalOptions()?.allowSystemActions`를 fallback으로 읽음.
-2. `@RequireTenant` **메서드 레벨** + `@SystemAction` 조합 동작 명세화.
-   현재 클래스 레벨 wrapping(`require-tenant.decorator.ts:78-79`)에서만
-   `SYSTEM_ACTION_METADATA`를 검사 → 메서드 레벨(`:57-60`) 분기에도 동일 검사 추가.
-   데코레이터 적용 순서 의존성을 피하려면 wrap 내부 런타임 검사가 더 안전한지
-   테스트로 검증.
-3. `test/unit/system-action.decorator.spec.ts` 신설:
-   - `allowSystemActions: false` (기본) → `@SystemAction`이 박혀 있어도 throw
-   - `allowSystemActions: true` → `@SystemAction` 메서드는 통과
-   - 시스템 작업 내부에서 `runWithTenant`로 재진입하는 패턴
+- `src/options/options.registry.ts` 신설: `setGlobalOptions` / `getGlobalOptions` /
+  `resetGlobalOptions`. cache.registry.ts와 동일 패턴.
+- `TenantShieldModule.onApplicationBootstrap`에서 `setGlobalOptions(this.options)` 호출.
+- `wrapMethod` 수정: `isSystemActionDecorated`(originalMethod 메타데이터) +
+  `globalAllowSystemActions`(registry)로 `shouldBypass` 산출.
+  데코레이터 올바른 순서 → `@RequireTenant` 위, `@SystemAction` 아래.
+- `test/unit/system-action.decorator.spec.ts` 신설 — 4 케이스 × 7 tests.
 
-#### 완료 정의 (DoD)
-- [ ] 위 3가지 모두 구현
-- [ ] `npx tsc -p tsconfig.build.json --noEmit` 통과
-- [ ] `npx jest` 통과 (신규 테스트 포함)
-- [ ] 커밋 + push 후 사용자에게 보고
-- [ ] `/eval` 호출하여 평가 기록
+**데코레이터 순서 발견**: 역순(`@SystemAction` 위)이면 `originalMethod`에 메타데이터가
+없어 `allowSystemActions: true`여도 우회 불가. 테스트로 명세화 완료. → [critical-notes.md §1.3](./critical-notes.md) 업데이트 필요.
 
 ### 2-c ⏳ Bull/BullMQ `@TenantContext` 실제 구현 + 예시
 
@@ -197,10 +180,10 @@ git log --oneline HEAD..origin/main
 
 | 항목 | 상태 | 마지막 확인 |
 |---|---|---|
-| 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-20 |
-| Jest | ✅ 10 suites / 40 tests pass | 2026-05-20 |
-| origin/main 동기화 | ✅ 모든 커밋 푸시 완료 | 2026-05-20 |
-| 최신 커밋 | `1df8a7c` | 2026-05-20 |
+| 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-23 |
+| Jest | ✅ 11 suites / 47 tests pass | 2026-05-23 |
+| origin/main 동기화 | ⏳ 로컬 커밋 1개 미푸시 (`82422e8`) | 2026-05-23 |
+| 최신 커밋 | `82422e8` | 2026-05-23 |
 
 > 단계 마무리마다 이 표를 새 날짜로 갱신한다. "마지막 확인"이 7일 이상 지나면 신규 작업 진입 전 재검증.
 
@@ -241,3 +224,4 @@ git log --oneline HEAD..origin/main
 | 2026-05-13 | 초안 작성 — 0단계 / 1번 / 2-a 완료 시점에서 진행 상황 정리 |
 | 2026-05-17 | 하네스 엔지니어링 셋업 반영: 자가 점검 체크리스트, 진입 체크리스트, 회고 누적 슬롯, claude.md/critical-notes.md/workflow.md 링크 |
 | 2026-05-20 | §6 검증 스냅샷 재확인 (1df8a7c, TSC clean, 40/40 pass). §4 2-b 1번 설명을 코드 grep 결과에 맞춰 수정 (middleware는 이미 연결, wrapMethod 미연결) — 글로벌 옵션 레지스트리 채택 결정. |
+| 2026-05-23 | 2-b 완료 (82422e8). Live Dashboard 진입점→publish scope 결정으로 갱신. §6 스냅샷 47 tests로 업데이트. |
