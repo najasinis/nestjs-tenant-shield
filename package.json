@@ -40,7 +40,9 @@
     "//format": "Prettier로 일관된 포매팅 적용.",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "//prepublishOnly": "npm publish 직전에 자동 실행되는 안전 장치. 빌드 실패 시 배포 차단.",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build && npm test",
+    "//demo": "academy-saas 예제 데모 서버 실행.",
+    "demo": "ts-node -r tsconfig-paths/register --project tsconfig.demo.json examples/academy-saas/src/main.ts"
   },
   "//peerDeps-comment": "라이브러리 사용자가 직접 설치해야 하는 의존성. nestjs-tenant-shield 자체는 이들을 번들링하지 않고 사용자 앱의 버전을 그대로 씁니다 (버전 충돌 방지).",
   "peerDependencies": {
@@ -60,10 +62,12 @@
   "devDependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
+    "@nestjs/platform-express": "^11.1.23",
     "@nestjs/testing": "^10.0.0",
+    "@nestjs/typeorm": "^11.0.1",
     "@testcontainers/postgresql": "^12.0.0",
     "@types/jest": "^29.5.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.19.41",
     "@types/pg": "^8.20.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
@@ -75,6 +79,8 @@
     "rxjs": "^7.8.0",
     "sqlite3": "^5.1.7",
     "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typeorm": "^0.3.17",
     "typescript": "^5.0.0"
   },
@@ -99,8 +105,5 @@
   "//engines-comment": "Node.js 18+ 필요. AsyncLocalStorage가 18부터 안정화되었기 때문.",
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "claude": "^0.1.1"
   }
 }

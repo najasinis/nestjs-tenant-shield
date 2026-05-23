@@ -24,6 +24,12 @@ export class StudentsController {
     return this.students.findAll();
   }
 
+  // GET /students/stats  — @Cacheable 데모. 두 번째 호출부터 캐시 hit.
+  @Get('stats')
+  async stats() {
+    return this.students.getStatistics();
+  }
+
   // GET /students/:id
   // 다른 tenant의 같은 id는 절대 반환되지 않음.
   @Get(':id')

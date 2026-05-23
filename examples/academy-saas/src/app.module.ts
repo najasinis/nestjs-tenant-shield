@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TenantShieldModule } from '../../../src';
+import { TenantShieldModule } from 'nestjs-tenant-shield';
 import { Student } from './students/student.entity';
 import { StudentsService } from './students/students.service';
 import { StudentsController } from './students/students.controller';

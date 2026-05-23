@@ -140,3 +140,7 @@ temp/
 .codex/skills/.system/**
 !.codex/prompts/
 !.codex/prompts/**
+
+# 데모 서버 SQLite 파일 (npm run demo 실행 시 생성)
+academy.sqlite
+dist-demo/

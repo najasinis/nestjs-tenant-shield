@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist-demo",
+    "strictPropertyInitialization": false,
+    "paths": {
+      "nestjs-tenant-shield": ["./src"]
+    }
+  },
+  "include": ["src/**/*", "examples/**/*"]
+}

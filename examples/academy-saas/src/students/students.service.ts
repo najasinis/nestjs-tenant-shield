@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from './student.entity';
-import { Cacheable, RequireTenant } from '../../../../src';
+import { Cacheable, RequireTenant } from 'nestjs-tenant-shield';
 
 /**
  * ─────────────────────────────────────────────────────────────

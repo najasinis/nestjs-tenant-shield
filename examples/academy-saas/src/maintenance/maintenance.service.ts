@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RequireTenant, SystemAction, runWithTenant } from '../../../../src';
+import { RequireTenant, SystemAction, runWithTenant } from 'nestjs-tenant-shield';
 import { StudentsService } from '../students/students.service';
 
 /**
