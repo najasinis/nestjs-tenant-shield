@@ -16,9 +16,9 @@
 
 | 항목 | 값 |
 |---|---|
-| **현재 진입점** | 2-c BullMQ @TenantContext 실제 구현 |
-| **최신 릴리즈** | v0.1.1 (npm publish ✅) |
-| **다음 체크포인트** | 2-d 커밋 후 2-c(BullMQ) 또는 6(커뮤니티) 선택 |
+| **현재 진입점** | 2-c BullMQ @TenantContext 실제 구현 또는 5(CI/CD) |
+| **최신 릴리즈** | v0.1.1 (npm publish ✅, 2-d Prisma 포함) |
+| **다음 체크포인트** | 2-c(BullMQ) → v0.2 publish 또는 5(CI/CD) → 6(커뮤니티) |
 | **다음 회고 시점** | 평가 20건 누적 시 `/eval-review` (Opus) |
 | **블로커** | 없음 |
 | **마지막 갱신** | 2026-05-24 |
@@ -163,7 +163,7 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 
 ### 2-d ✅ Prisma 어댑터
 
-**커밋**: (다음 커밋) — `feat(prisma): createTenantAwarePrisma $extends 어댑터 구현 (#2-d)`
+**커밋**: `8bfb015` — `feat(prisma): Prisma 어댑터 추가 — createTenantAwarePrisma()`
 
 - `src/prisma/prisma-tenant.extension.ts` 신설: `createTenantAwarePrisma(client, options)`.
   Prisma `$extends` duck-type 패턴으로 `@prisma/client` 직접 import 없이 동작.
@@ -200,8 +200,8 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 |---|---|---|
 | 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-24 |
 | Jest | ✅ 12 suites / 66 tests pass (PG suite: Docker 없으면 skip) | 2026-05-24 |
-| origin/main 동기화 | ⏳ 2-d 커밋 대기 중 | 2026-05-24 |
-| 최신 커밋 | `d185be3` (미커밋 변경 있음) | 2026-05-24 |
+| origin/main 동기화 | ✅ 동기화 완료 | 2026-05-24 |
+| 최신 커밋 | `8bfb015` feat(prisma) | 2026-05-24 |
 
 > 단계 마무리마다 이 표를 새 날짜로 갱신한다. "마지막 확인"이 7일 이상 지나면 신규 작업 진입 전 재검증.
 
