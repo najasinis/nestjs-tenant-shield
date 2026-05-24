@@ -11,14 +11,14 @@
 ## 📌 지금 여기 (Live Dashboard)
 
 ```
-0단계 ✅ → 1번 ✅ → 2번 ✅ (2-a ✅ / 2-b ✅ / 2-c → v0.2 / 2-d → v0.2) → 5번 ✅ → 3~4·6번 ⏳
+0단계 ✅ → 1번 ✅ → 2번 🔄 (2-a ✅ / 2-b ✅ / 2-c ⏳ / 2-d ✅) → 5번 ✅ → 3~4·6번 ⏳
 ```
 
 | 항목 | 값 |
 |---|---|
-| **현재 진입점** | v0.2 진입 — 2-c(BullMQ) / 2-d(Prisma) / 6(커뮤니티) 중 선택 |
-| **최신 릴리즈** | v0.1.1 (npm publish ✅, README 머지 마커 핫픽스 + unpatch() 추가) |
-| **다음 체크포인트** | v0.2 scope 확정 후 첫 진입점 선택 |
+| **현재 진입점** | 2-c BullMQ @TenantContext 실제 구현 |
+| **최신 릴리즈** | v0.1.1 (npm publish ✅) |
+| **다음 체크포인트** | 2-d 커밋 후 2-c(BullMQ) 또는 6(커뮤니티) 선택 |
 | **다음 회고 시점** | 평가 20건 누적 시 `/eval-review` (Opus) |
 | **블로커** | 없음 |
 | **마지막 갱신** | 2026-05-24 |
@@ -161,12 +161,19 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 - 데코레이터 스켈레톤은 있으나 큐 통합 테스트와 예시 부재.
 - `examples/queue-bullmq/` 신설은 v0.2에서 진행.
 
-### 2-d → v0.2 Prisma 어댑터 스켈레톤
+### 2-d ✅ Prisma 어댑터
 
-PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
+**커밋**: (다음 커밋) — `feat(prisma): createTenantAwarePrisma $extends 어댑터 구현 (#2-d)`
 
-- `src/prisma/` 폴더 신설은 v0.2에서 진행.
-- Prisma의 `$extends` 또는 미들웨어 기반 자동 `WHERE tenantId` 주입.
+- `src/prisma/prisma-tenant.extension.ts` 신설: `createTenantAwarePrisma(client, options)`.
+  Prisma `$extends` duck-type 패턴으로 `@prisma/client` 직접 import 없이 동작.
+- 보호 범위: findMany/findFirst/findFirstOrThrow/count/aggregate/groupBy → WHERE 자동 주입.
+  create/createMany → data tenantId 주입. update/updateMany/delete/deleteMany/upsert → WHERE 주입.
+  findUnique/findUniqueOrThrow → 결과 사후 검증 (unique 제약으로 WHERE 직접 주입 불가).
+- afterLoad 상당: 결과 row tenantId 불일치 시 CrossTenantAccessError (최후 안전망).
+- `package.json` peerDependencies에 `@prisma/client ^5.0.0` optional 추가.
+- `test/unit/prisma-tenant.extension.spec.ts` 신설 — 8 케이스 / 19 tests pass.
+- `examples/prisma-saas/README.md` 신설.
 
 ### 2-e ✅ PostgreSQL e2e (Docker testcontainers)
 
@@ -191,10 +198,10 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 
 | 항목 | 상태 | 마지막 확인 |
 |---|---|---|
-| 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-23 |
-| Jest | ✅ 11 suites / 47 tests pass (PG suite: Docker 없으면 skip) | 2026-05-23 |
-| origin/main 동기화 | ✅ 모든 커밋 푸시 완료 | 2026-05-23 |
-| 최신 커밋 | `b01f4b6` | 2026-05-23 |
+| 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-24 |
+| Jest | ✅ 12 suites / 66 tests pass (PG suite: Docker 없으면 skip) | 2026-05-24 |
+| origin/main 동기화 | ⏳ 2-d 커밋 대기 중 | 2026-05-24 |
+| 최신 커밋 | `d185be3` (미커밋 변경 있음) | 2026-05-24 |
 
 > 단계 마무리마다 이 표를 새 날짜로 갱신한다. "마지막 확인"이 7일 이상 지나면 신규 작업 진입 전 재검증.
 
@@ -237,3 +244,4 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 | 2026-05-20 | §6 검증 스냅샷 재확인 (1df8a7c, TSC clean, 40/40 pass). §4 2-b 1번 설명을 코드 grep 결과에 맞춰 수정 (middleware는 이미 연결, wrapMethod 미연결) — 글로벌 옵션 레지스트리 채택 결정. |
 | 2026-05-23 | 2-b 완료 (82422e8). Live Dashboard 진입점→publish scope 결정으로 갱신. §6 스냅샷 47 tests로 업데이트. |
 | 2026-05-23 | 2-c/2-d → v0.2 확정(PRD §7). PostgreSQL e2e(2-e) 추가. Live Dashboard: To-Do 4→5 직행으로 갱신. |
+| 2026-05-24 | 2-d Prisma 어댑터 완료. createTenantAwarePrisma + 19 tests. 진입점 → 2-c(BullMQ). |

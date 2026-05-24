@@ -48,12 +48,16 @@
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0",
     "@nestjs/core": "^10.0.0 || ^11.0.0",
+    "@prisma/client": "^5.0.0",
     "reflect-metadata": "^0.1.13 || ^0.2.0",
     "rxjs": "^7.0.0",
     "typeorm": "^0.3.0"
   },
-  "//peerDepsMeta-comment": "v0.1에서는 TypeORM만 지원하지만, ORM을 안 쓰는 사용자도 있을 수 있으므로 optional 표시.",
+  "//peerDepsMeta-comment": "typeorm/prisma는 각각 선택적. 둘 다 안 써도 되고, 하나만 써도 됨.",
   "peerDependenciesMeta": {
+    "@prisma/client": {
+      "optional": true
+    },
     "typeorm": {
       "optional": true
     }

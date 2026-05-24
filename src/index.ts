@@ -53,6 +53,9 @@ export * from './cache';
 // TypeORM 통합 (raw SQL 헬퍼 등)
 export * from './typeorm';
 
+// Prisma 통합 (createTenantAwarePrisma)
+export * from './prisma';
+
 // 상수 (DI 토큰)
 export * from './constants';
 
