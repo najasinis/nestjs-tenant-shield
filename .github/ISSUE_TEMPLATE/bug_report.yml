@@ -1,0 +1,89 @@
+name: Bug Report
+description: nestjs-tenant-shield 버그 신고
+labels: ['bug']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        버그 신고 감사합니다. 아래 양식을 최대한 채워주시면 빠르게 처리할 수 있습니다.
+        **보안 취약점**은 이 양식이 아닌 [SECURITY.md](../SECURITY.md)를 먼저 읽어주세요.
+
+  - type: input
+    id: version
+    attributes:
+      label: nestjs-tenant-shield 버전
+      placeholder: '0.2.0'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: orm
+    attributes:
+      label: 사용 ORM
+      options:
+        - TypeORM
+        - Prisma
+        - 둘 다
+        - ORM 미사용
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tenant-strategy
+    attributes:
+      label: tenant 전략
+      options:
+        - discriminator (tenant_id 컬럼)
+        - header
+        - jwt
+        - subdomain
+        - custom
+    validations:
+      required: true
+
+  - type: input
+    id: nestjs-version
+    attributes:
+      label: NestJS 버전
+      placeholder: '10.x 또는 11.x'
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js 버전
+      placeholder: '18.x 또는 20.x'
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 버그 설명
+      description: 무슨 일이 일어났나요? 기대했던 동작과 실제 동작을 설명해주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 코드
+      description: 버그를 재현하는 최소 코드 스니펫
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-message
+    attributes:
+      label: 에러 메시지 / 스택 트레이스
+      render: shell
+
+  - type: checkboxes
+    id: cross-tenant
+    attributes:
+      label: Cross-tenant 관련 버그인가요?
+      options:
+        - label: 네, 다른 tenant의 데이터에 접근되거나 격리가 깨지는 버그입니다

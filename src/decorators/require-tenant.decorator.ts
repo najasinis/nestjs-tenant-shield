@@ -51,37 +51,24 @@ export function RequireTenant(
     propertyKey?: string | symbol,
     descriptor?: PropertyDescriptor,
   ): any {
-    // ─────────────────────────────────────────────
-    // CASE 1: 메서드 데코레이터로 사용된 경우
-    // propertyKey와 descriptor가 모두 존재함.
-    // ─────────────────────────────────────────────
+    // 메서드 데코레이터로 사용된 경우.
     if (propertyKey && descriptor) {
       wrapMethod(propertyKey, descriptor, options);
       return descriptor;
     }
 
-    // ─────────────────────────────────────────────
-    // CASE 2: 클래스 데코레이터로 사용된 경우
-    // propertyKey가 undefined이고, target이 클래스 생성자.
-    // 클래스의 prototype에 있는 모든 메서드를 자동으로 감쌉니다.
-    // ─────────────────────────────────────────────
+    // 클래스 데코레이터로 사용된 경우 — prototype의 모든 메서드를 자동 wrapping.
     const proto = target.prototype;
     for (const key of Object.getOwnPropertyNames(proto)) {
-      // constructor는 건너뛰기.
       if (key === 'constructor') continue;
 
       const desc = Object.getOwnPropertyDescriptor(proto, key);
-
-      // 함수가 아닌 속성(getter 등)은 건너뜀.
       if (!desc || typeof desc.value !== 'function') continue;
 
       // @SystemAction()이 붙은 메서드는 의도적으로 보호 제외.
-      const isSystemAction = Reflect.getMetadata(SYSTEM_ACTION_METADATA, desc.value);
-      if (isSystemAction) continue;
+      if (Reflect.getMetadata(SYSTEM_ACTION_METADATA, desc.value)) continue;
 
       wrapMethod(key, desc, options);
-
-      // 변경된 descriptor 적용.
       Object.defineProperty(proto, key, desc);
     }
 
@@ -99,35 +86,28 @@ function wrapMethod(
   descriptor: PropertyDescriptor,
   options: RequireTenantOptions,
 ): void {
-  // 원본 메서드 백업.
   const originalMethod = descriptor.value;
 
-  // 이 메서드가 @RequireTenant로 보호된다는 메타데이터 기록.
-  // Subscriber나 디버깅 도구가 참조할 수 있습니다.
+  // 보호 대상 메타데이터 기록 — Subscriber/디버깅 도구가 참조.
   Reflect.defineMetadata(REQUIRE_TENANT_METADATA, options, originalMethod);
 
-  // 메서드를 감싸기 — 화살표 함수가 아니라 일반 함수로 작성하여
-  // `this`가 호출 시점의 인스턴스로 정상 바인딩되도록 합니다.
+  // 일반 function으로 작성 — `this` 바인딩 보존.
   descriptor.value = async function (this: unknown, ...args: unknown[]) {
     const store = tenantContextStorage.getStore();
     const tenantId = getCurrentTenantId();
 
-    // 런타임 컨텍스트 플래그: runWithoutTenant()로 진입한 경우.
+    // 런타임: runWithoutTenant() 진입. 데코레이터: @SystemAction()이 originalMethod에 붙음
+    // (올바른 적용 순서 — @RequireTenant 위, @SystemAction 아래일 때만 유효).
     const isSystemActionRuntime = store?.isSystemAction === true;
-    // 데코레이터 메타데이터 플래그: @SystemAction()이 originalMethod에 붙은 경우.
-    // 올바른 적용 순서(@RequireTenant 위, @SystemAction 아래)일 때만 유효하다.
     const isSystemActionDecorated =
       Reflect.getMetadata(SYSTEM_ACTION_METADATA, originalMethod) === true;
-    // forRoot.allowSystemActions: true일 때만 데코레이터 우회 허용.
     const globalAllowSystemActions = getGlobalOptions()?.allowSystemActions ?? false;
     const shouldBypass =
       isSystemActionRuntime || (isSystemActionDecorated && globalAllowSystemActions);
 
     if (!tenantId && !options.allowSystem && !shouldBypass) {
-      // strictMode가 명시적으로 false면 경고만 남기고 통과,
-      // 그 외에는 (기본 true) 즉시 throw.
-      const strict = options.strictMode !== false;
-      if (strict) {
+      // strictMode=false면 경고만(현재 logger 미주입), 그 외 throw.
+      if (options.strictMode !== false) {
         throw new MissingTenantContextError(
           `@RequireTenant: tenant 컨텍스트 없음 — "${String(propertyKey)}" 호출 전 확인:\n` +
             `  1) TenantContextMiddleware가 이 라우트에 적용됐는지\n` +
@@ -135,13 +115,9 @@ function wrapMethod(
             `  3) 시스템 작업이라면 @SystemAction + forRoot({ allowSystemActions: true }) 조합인지`,
           'decorator',
         );
-      } else {
-        // TODO: forRoot에서 받은 logger 인스턴스로 경고 출력.
-        // (의도적으로 console 직접 호출은 피함 — 로거 인스턴스 주입 예정)
       }
     }
 
-    // 원본 메서드 실행 결과 반환.
     return originalMethod.apply(this, args);
   };
 }

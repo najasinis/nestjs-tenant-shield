@@ -42,15 +42,12 @@ export class TenantContextMiddleware implements NestMiddleware {
    * NestJS는 내부적으로 Express/Fastify 어댑터로 변환해 호출.
    */
   use(req: unknown, _res: unknown, next: (err?: unknown) => void): void {
-    // 1) 요청에서 tenant ID 추출 시도
     const tenantId = this.resolver.resolve(req);
 
-    // 2) strict mode면 tenant 없을 때 즉시 차단
-    //    (단, allowSystemActions가 켜져있으면 시스템 작업 가능성이 있으므로
-    //     일단 통과시키고 메서드 단의 @RequireTenant가 최종 판단하도록 위임)
-    const strictMode = this.options.strictMode !== false; // 기본 true
+    // strict mode + 일반 요청에서 tenant 없으면 즉시 차단.
+    // allowSystemActions가 켜져있으면 메서드 단 @RequireTenant에 위임.
+    const strictMode = this.options.strictMode !== false;
     if (!tenantId && strictMode && !this.options.allowSystemActions) {
-      // 미들웨어 단에서 throw하면 NestJS Exception Filter가 처리.
       return next(
         new MissingTenantContextError(
           `요청에서 tenant ID를 추출하지 못했습니다. source=${this.options.tenantSource}`,
@@ -59,9 +56,7 @@ export class TenantContextMiddleware implements NestMiddleware {
       );
     }
 
-    // 3) AsyncLocalStorage.run()으로 컨텍스트 활성화.
-    //    next() 호출이 이 콜백 안에서 일어나야, 이후 모든 비동기 체인이
-    //    동일한 store를 공유합니다.
+    // next()는 반드시 run() 콜백 안에서 호출 — 이후 비동기 체인이 동일 store 공유.
     tenantContextStorage.run({ tenantId, isSystemAction: false }, () => next());
   }
 }

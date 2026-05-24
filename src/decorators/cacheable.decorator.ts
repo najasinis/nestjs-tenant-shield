@@ -40,20 +40,12 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
     let fallbackWarned = false;
 
     descriptor.value = async function (this: any, ...args: unknown[]) {
-      // 1) 캐시 서비스 인스턴스 lookup — 두 경로 시도:
-      //    (a) 사용자 클래스에 명시적으로 주입된 this.cacheService (우선)
-      //    (b) TenantShieldModule이 bootstrap 시 등록한 글로벌 registry (fallback)
-      //
-      //    (b)가 동작하려면 AppModule이 TenantShieldModule.forRoot()를
-      //    import 했고, 앱이 onApplicationBootstrap 라이프사이클을 지난 상태여야 함.
-      const explicit: TenantAwareCacheService | undefined = this.cacheService;
+      // 캐시 서비스 lookup: this.cacheService(명시적 주입) → globalCache(모듈 bootstrap 등록).
       const cacheService: TenantAwareCacheService | undefined =
-        explicit ?? getGlobalCache();
+        this.cacheService ?? getGlobalCache();
 
       if (!cacheService) {
-        // 둘 다 없으면 캐시를 그냥 우회 — 기능적으로는 안전(원본 결과 반환).
-        // 다만 사용자가 @Cacheable을 명시했다는 건 캐시를 원했다는 뜻이므로
-        // 개발 환경에서 한 번만 경고 로그를 남겨 디버깅을 도와줍니다.
+        // 캐시 인스턴스 없으면 원본 호출로 fallback. dev에서 1회만 경고.
         if (!fallbackWarned && process.env.NODE_ENV !== 'production') {
           fallbackWarned = true;
           // eslint-disable-next-line no-console
@@ -66,7 +58,6 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
         return originalMethod.apply(this, args);
       }
 
-      // 2) 캐시 키 생성.
       const key = buildCacheKey({
         className,
         methodName: String(propertyKey),
@@ -74,11 +65,9 @@ export function Cacheable(options: CacheableOptions): MethodDecorator {
         options,
       });
 
-      // 3) 캐시 hit → 즉시 반환
       const cached = await cacheService.get(key);
       if (cached !== undefined) return cached;
 
-      // 4) Miss → 원본 실행 → 결과 저장 → 반환
       const result = await originalMethod.apply(this, args);
       await cacheService.set(key, result, options.ttl);
       return result;
@@ -104,14 +93,8 @@ function buildCacheKey(input: {
 }): string {
   const { className, methodName, args, options } = input;
 
-  // 1) tenant prefix
   const tenantPrefix = options.tenantScoped ? `${getCurrentTenantId() ?? 'no-tenant'}:` : '';
-
-  // 2) args 직렬화
-  //    커스텀 keyGenerator가 있으면 우선 사용 — 사용자가 키 충돌/길이 제어 가능.
-  const argsKey = options.keyGenerator
-    ? options.keyGenerator(args)
-    : safeStringify(args);
+  const argsKey = options.keyGenerator ? options.keyGenerator(args) : safeStringify(args);
 
   return `${tenantPrefix}${className}.${methodName}:${argsKey}`;
 }

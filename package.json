@@ -1,9 +1,9 @@
 {
   "//": "nestjs-tenant-shield 라이브러리의 npm 패키지 메타데이터입니다.",
-  "//1": "사용자가 'pnpm add nestjs-tenant-shield'를 실행하면 npm 레지스트리에서 이 정보를 보고 다운로드합니다.",
+  "//1": "사용자가 'npm install nestjs-tenant-shield'를 실행하면 npm 레지스트리에서 이 정보를 보고 다운로드합니다.",
   "name": "nestjs-tenant-shield",
   "//2": "Semantic Versioning(semver) 규칙: MAJOR.MINOR.PATCH. v0.x 단계에서는 API 변경 가능, v1.0부터 엄격 적용.",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "NestJS B2B SaaS의 멀티테넌시 데이터 격리를 데코레이터 한 줄로 자동화하는 안전망 라이브러리",
   "//3": "라이브러리 사용자가 'import { ... } from \"nestjs-tenant-shield\"' 할 때 진입점이 되는 파일.",
   "//4": "빌드 결과물은 dist/ 폴더에 들어가므로 배포 시에는 dist/index.js를 가리킵니다.",
@@ -24,6 +24,8 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {
@@ -39,23 +41,29 @@
     "lint": "eslint \"src/**/*.ts\" --fix",
     "//format": "Prettier로 일관된 포매팅 적용.",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "//prepublishOnly": "npm publish 직전에 자동 실행되는 안전 장치. 빌드 실패 시 배포 차단.",
-    "prepublishOnly": "npm run build && npm test",
+    "//prepublishOnly": "npm publish 직전에 자동 실행되는 안전 장치. 빌드 → lint → 테스트 순서로 실패 시 배포 차단.",
+    "prepublishOnly": "npm run build && npm run lint && npm test",
     "//demo": "academy-saas 예제 데모 서버 실행.",
-    "demo": "ts-node -r tsconfig-paths/register --project tsconfig.demo.json examples/academy-saas/src/main.ts"
+    "demo": "ts-node -r tsconfig-paths/register --project tsconfig.demo.json examples/academy-saas/src/main.ts",
+    "//benchmark": "순수 오버헤드 벤치마크 (DB 없이 in-memory).",
+    "benchmark": "ts-node --transpile-only benchmark/simple-bench.ts"
   },
-  "//peerDeps-comment": "라이브러리 사용자가 직접 설치해야 하는 의존성. nestjs-tenant-shield 자체는 이들을 번들링하지 않고 사용자 앱의 버전을 그대로 씁니다 (버전 충돌 방지).",
+  "//peerDeps-comment": "라이브러리 사용자가 직접 설치해야 하는 의존성. nestjs-tenant-shield 자체는 이들을 번들링하지 않습니다.",
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0",
     "@nestjs/core": "^10.0.0 || ^11.0.0",
     "@prisma/client": "^5.0.0",
+    "bullmq": "^5.0.0",
     "reflect-metadata": "^0.1.13 || ^0.2.0",
     "rxjs": "^7.0.0",
     "typeorm": "^0.3.0"
   },
-  "//peerDepsMeta-comment": "typeorm/prisma는 각각 선택적. 둘 다 안 써도 되고, 하나만 써도 됨.",
+  "//peerDepsMeta-comment": "typeorm/prisma/bullmq는 모두 선택적. 사용하는 것만 설치하면 됩니다.",
   "peerDependenciesMeta": {
     "@prisma/client": {
+      "optional": true
+    },
+    "bullmq": {
       "optional": true
     },
     "typeorm": {
@@ -98,6 +106,8 @@
     "isolation",
     "data-isolation",
     "typeorm",
+    "prisma",
+    "bullmq",
     "async-local-storage"
   ],
   "author": "Jinyeong Jung",

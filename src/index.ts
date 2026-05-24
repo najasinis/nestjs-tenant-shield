@@ -56,6 +56,9 @@ export * from './typeorm';
 // Prisma 통합 (createTenantAwarePrisma)
 export * from './prisma';
 
+// BullMQ 통합 (withTenantPayload)
+export * from './bull';
+
 // 상수 (DI 토큰)
 export * from './constants';
 

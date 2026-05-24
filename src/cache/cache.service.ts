@@ -32,17 +32,13 @@ export interface TenantAwareCacheService {
  */
 @Injectable()
 export class InMemoryTenantAwareCacheService implements TenantAwareCacheService {
-  /**
-   * 캐시 본체.
-   * value 옆에 expiresAt(ms epoch)을 저장해 lazy expiration 처리.
-   */
+  /** value + expiresAt(ms epoch) 묶음. lazy expiration. */
   private readonly store = new Map<string, { value: unknown; expiresAt: number }>();
 
   async get(key: string): Promise<unknown | undefined> {
     const entry = this.store.get(key);
     if (!entry) return undefined;
 
-    // TTL 만료 검사. 만료됐으면 삭제 후 미스로 처리.
     if (entry.expiresAt < Date.now()) {
       this.store.delete(key);
       return undefined;

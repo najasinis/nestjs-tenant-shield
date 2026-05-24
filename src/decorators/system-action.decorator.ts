@@ -43,8 +43,7 @@ export function SystemAction(): MethodDecorator {
     _propertyKey: string | symbol,
     descriptor: PropertyDescriptor,
   ): PropertyDescriptor {
-    // 메서드 자체에 메타데이터 표식만 남깁니다.
-    // 실제 우회 로직은 @RequireTenant() 쪽에서 이 표식을 보고 처리.
+    // 표식만 남김 — 실제 우회 로직은 @RequireTenant()가 이 메타데이터를 보고 처리.
     Reflect.defineMetadata(SYSTEM_ACTION_METADATA, true, descriptor.value);
     return descriptor;
   };
