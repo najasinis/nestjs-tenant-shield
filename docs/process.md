@@ -17,11 +17,12 @@
 | 항목 | 값 |
 |---|---|
 | **현재 진입점** | v0.3 RLS PoC 또는 외부 피드백 수집 대기 |
-| **최신 릴리즈** | v0.2.0 (npm publish ✅) |
+| **최신 릴리즈** | v0.2.0 (npm publish ✅, commit 3dab27f) |
 | **다음 체크포인트** | 외부 피드백 3건 또는 파일럿 1건 → v0.3 여부 결정 |
 | **다음 회고 시점** | 평가 20건 누적 시 `/eval-review` (Opus) |
 | **블로커** | 없음 |
-| **마지막 갱신** | 2026-05-24 |
+| **마지막 갱신** | 2026-05-26 |
+| **테스트 현황** | 13 suites / 86 tests (1 skipped suite, 5 skipped tests) |
 
 ### 매 세션 시작 시 자가 점검
 
@@ -49,11 +50,11 @@ git log --oneline HEAD..origin/main
 |---|---|---|---|
 | **0** | (재정렬로 추가) v0.1 약속 완성 | Subscriber 자동 등록, @Cacheable DI 연결, 와이어링 정리 | ✅ |
 | 1 | 안정화 및 문서화 | README 정밀 범위, runWithoutTenant 가이드, examples 보강, e2e 커버리지 | ✅ |
-| 2 | 기능 확장 | 캐시 어댑터 DI, @SystemAction 세분화, Bull/BullMQ, Prisma | 🔄 |
-| 3 | 보안/안정성 | Postgres RLS(v0.3), cross-tenant 감사 로그, strict=false 경고 체계 | ⏳ |
-| 4 | 개발자 경험 | 타입 추론 개선, NestJS 11.x 호환, 실행 가능한 예제, 에러 메시지 한/영 | ⏳ |
-| 5 | 배포/운영 | prepublishOnly lint, CHANGELOG, CI/CD, 첫 공식 릴리즈 | ⏳ |
-| 6 | 문서/커뮤니티 | FAQ/트러블슈팅, GitHub 템플릿, CONTRIBUTING.md | ⏳ |
+| 2 | 기능 확장 | 캐시 어댑터 DI, @SystemAction 세분화, Bull/BullMQ, Prisma | ✅ |
+| 3 | 보안/안정성 | Postgres RLS(v0.3), cross-tenant 감사 로그, strict=false 경고 체계 | 🔄 일부 완료 |
+| 4 | 개발자 경험 | 타입 추론 개선, NestJS 11.x 호환, 실행 가능한 예제, 에러 메시지 한/영 | 🔄 일부 완료 |
+| 5 | 배포/운영 | prepublishOnly lint, CHANGELOG, CI/CD, 첫 공식 릴리즈 | ✅ |
+| 6 | 문서/커뮤니티 | FAQ/트러블슈팅, GitHub 템플릿, CONTRIBUTING.md | ✅ |
 
 ### 우선순위 재정렬 (직전 점검 반영)
 
