@@ -3,7 +3,7 @@
   "//1": "사용자가 'npm install nestjs-tenant-shield'를 실행하면 npm 레지스트리에서 이 정보를 보고 다운로드합니다.",
   "name": "nestjs-tenant-shield",
   "//2": "Semantic Versioning(semver) 규칙: MAJOR.MINOR.PATCH. v0.x 단계에서는 API 변경 가능, v1.0부터 엄격 적용.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "NestJS B2B SaaS의 멀티테넌시 데이터 격리를 데코레이터 한 줄로 자동화하는 안전망 라이브러리",
   "//3": "라이브러리 사용자가 'import { ... } from \"nestjs-tenant-shield\"' 할 때 진입점이 되는 파일.",
   "//4": "빌드 결과물은 dist/ 폴더에 들어가므로 배포 시에는 dist/index.js를 가리킵니다.",

@@ -37,7 +37,7 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "npx tsc -p tsconfig.build.json --noEmit && echo \"TSC: PASS\"",
+    "buildCommand": "npm run build 2>&1 | tail -5 && echo \"---\" && npm whoami 2>&1",
     "testCommand": "npx tsc -p tsconfig.build.json --noEmit && npx jest --forceExit 2>&1 | tail -20",
     "lintCommand": "npm run lint",
     "devCommand": null,
@@ -166,14 +166,20 @@
     },
     {
       "path": "docs/process.md",
-      "accessCount": 12,
-      "lastAccessed": 1779780266393,
+      "accessCount": 13,
+      "lastAccessed": 1779783327158,
       "type": "file"
     },
     {
       "path": "src/tenant-shield.module.ts",
       "accessCount": 11,
       "lastAccessed": 1779626194669,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 7,
+      "lastAccessed": 1779783302302,
       "type": "file"
     },
     {
@@ -192,12 +198,6 @@
       "path": "src/prisma/prisma-tenant.extension.ts",
       "accessCount": 5,
       "lastAccessed": 1779626594223,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 5,
-      "lastAccessed": 1779780227893,
       "type": "file"
     },
     {

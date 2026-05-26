@@ -5,7 +5,7 @@ All notable changes to nestjs-tenant-shield are documented here.
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-05-24
+## [0.2.1] - 2026-05-24
 
 ### Added
 - `SecurityViolationEvent` interface — structured audit event for security violations / 보안 위반 구조화 이벤트 인터페이스
