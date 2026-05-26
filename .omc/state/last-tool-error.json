@@ -1,0 +1,7 @@
+{
+  "tool_name": "mcp__plugin_oh-my-claudecode_t__lsp_diagnostics",
+  "tool_input_preview": "{\"file\":\"/Users/jinyeong-jung/Private/nestjs-tenant-shield/src/context/get-current-tenant-id.ts\"}",
+  "error": "Language server 'typescript-language-server' not found.\nInstall with: npm install -g typescript-language-server typescript",
+  "timestamp": "2026-05-24T12:30:09.088Z",
+  "retry_count": 9
+}

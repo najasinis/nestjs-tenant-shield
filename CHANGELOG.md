@@ -5,6 +5,21 @@ All notable changes to nestjs-tenant-shield are documented here.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-24
+
+### Added
+- `SecurityViolationEvent` interface — structured audit event for security violations / 보안 위반 구조화 이벤트 인터페이스
+- `onSecurityViolation` callback in `TenantShieldOptions` — fires just before throwing `CrossTenantAccessError` or `MissingTenantContextError`; errors in the callback are silently swallowed so the security error always propagates / throw 직전 호출, 콜백 에러는 삼킴
+- `onSecurityViolation` wired to all throw sites: TypeORM Subscriber (`beforeInsert`, `afterLoad`, QueryBuilder & Repository patches), Prisma extension, `@RequireTenant` decorator / 모든 throw 지점 연결
+- `strictMode: false` startup warning via `logger.warn()` in `onApplicationBootstrap` / strictMode 비활성화 시 부팅 경고 로그
+- `CHANGELOG.md` (this file), `CONTRIBUTING.md`, `docs/troubleshooting.md` — project documentation / 프로젝트 문서
+- `.github/workflows/ci.yml` — Node 18/20/22 matrix CI (lint + type-check + test + build) / GitHub Actions CI
+- `.github/ISSUE_TEMPLATE/` — bilingual bug report, feature request, and config / 한영 이슈 템플릿
+
+### Changed
+- Error classes (`MissingTenantContextError`, `CrossTenantAccessError`, `InvalidTenantSourceError`): constructor parameters now optional with bilingual `DEFAULT_MESSAGE` static fields / 생성자 파라미터 선택적으로 변경 + 한영 기본 메시지
+- Code simplification: removed step-numbered restatement comments, collapsed single-use variables, flattened nested-if guards / 불필요한 주석 제거 및 코드 간소화
+
 ## [0.1.1] - 2026-05-24
 
 ### Fixed

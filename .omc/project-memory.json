@@ -1,0 +1,463 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1779565313307,
+  "projectRoot": "/Users/jinyeong-jung/Private/nestjs-tenant-shield",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=18.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "@nestjs/core",
+        "version": "10.0.0",
+        "category": "backend"
+      },
+      {
+        "name": "jest",
+        "version": "29.5.0",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 18.0.0"
+  },
+  "build": {
+    "buildCommand": "npx tsc -p tsconfig.build.json --noEmit && echo \"TSC: PASS\"",
+    "testCommand": "npx tsc -p tsconfig.build.json --noEmit && npx jest --forceExit 2>&1 | tail -20",
+    "lintCommand": "npm run lint",
+    "devCommand": null,
+    "scripts": {
+      "//build": "TypeScript 소스를 dist/ 폴더에 JavaScript로 컴파일합니다. npm publish 전 필수.",
+      "build": "tsc -p tsconfig.build.json",
+      "//test": "Jest로 모든 단위 테스트 실행. CI에서도 동일하게 동작.",
+      "test": "jest",
+      "//test:watch": "파일 저장할 때마다 관련 테스트만 다시 실행. 개발 중 유용.",
+      "test:watch": "jest --watch",
+      "//test:cov": "테스트 커버리지 리포트 생성. v1.0 전에 80%+ 목표.",
+      "test:cov": "jest --coverage",
+      "//lint": "코드 스타일과 잠재적 버그를 정적 분석으로 잡습니다.",
+      "lint": "eslint \"src/**/*.ts\" --fix",
+      "//format": "Prettier로 일관된 포매팅 적용.",
+      "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+      "//prepublishOnly": "npm publish 직전에 자동 실행되는 안전 장치. 빌드 실패 시 배포 차단.",
+      "prepublishOnly": "npm run build && npm test",
+      "//demo": "academy-saas 예제 데모 서버 실행.",
+      "demo": "ts-node -r tsconfig-paths/register --project tsconfig.demo.json examples/academy-saas/src/main.ts"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": "*.spec.ts",
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "examples",
+      "src",
+      "test"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "claude": {
+      "path": "claude",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1779565313293,
+      "keyFiles": [
+        "ARCHITECTURE.md",
+        "CLAUDE.md",
+        "DECISIONS.md",
+        "IMPLEMENTATION_PLAN.md"
+      ]
+    },
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 8,
+      "lastAccessed": 1779565313294,
+      "keyFiles": [
+        "index.d.ts",
+        "index.d.ts.map",
+        "index.js",
+        "index.js.map",
+        "tenant-shield.module.d.ts"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 6,
+      "lastAccessed": 1779565313297,
+      "keyFiles": [
+        "claude.md",
+        "critical-notes.md",
+        "process.md",
+        "tenant-shield-PRD.md",
+        "tenant-shield-api-spec.md"
+      ]
+    },
+    "examples": {
+      "path": "examples",
+      "purpose": "Example code",
+      "fileCount": 0,
+      "lastAccessed": 1779565313297,
+      "keyFiles": []
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 2,
+      "lastAccessed": 1779565313298,
+      "keyFiles": [
+        "index.ts",
+        "tenant-shield.module.ts"
+      ]
+    },
+    "test": {
+      "path": "test",
+      "purpose": "Test files",
+      "fileCount": 1,
+      "lastAccessed": 1779565313298,
+      "keyFiles": [
+        "tenant-shield.module.spec.ts"
+      ]
+    },
+    "src/middleware": {
+      "path": "src/middleware",
+      "purpose": "Middleware",
+      "fileCount": 2,
+      "lastAccessed": 1779565313299,
+      "keyFiles": [
+        "index.ts",
+        "tenant-context.middleware.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/typeorm/tenant.subscriber.ts",
+      "accessCount": 23,
+      "lastAccessed": 1779626564744,
+      "type": "file"
+    },
+    {
+      "path": "docs/process.md",
+      "accessCount": 12,
+      "lastAccessed": 1779780266393,
+      "type": "file"
+    },
+    {
+      "path": "src/tenant-shield.module.ts",
+      "accessCount": 11,
+      "lastAccessed": 1779626194669,
+      "type": "file"
+    },
+    {
+      "path": "src/interfaces/tenant-shield-options.interface.ts",
+      "accessCount": 6,
+      "lastAccessed": 1779626186832,
+      "type": "file"
+    },
+    {
+      "path": "src/decorators/require-tenant.decorator.ts",
+      "accessCount": 6,
+      "lastAccessed": 1779626605918,
+      "type": "file"
+    },
+    {
+      "path": "src/prisma/prisma-tenant.extension.ts",
+      "accessCount": 5,
+      "lastAccessed": 1779626594223,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 5,
+      "lastAccessed": 1779780227893,
+      "type": "file"
+    },
+    {
+      "path": "src/index.ts",
+      "accessCount": 4,
+      "lastAccessed": 1779624918611,
+      "type": "file"
+    },
+    {
+      "path": "src/errors/missing-tenant-context.error.ts",
+      "accessCount": 4,
+      "lastAccessed": 1779626205607,
+      "type": "file"
+    },
+    {
+      "path": "src/errors/cross-tenant-access.error.ts",
+      "accessCount": 4,
+      "lastAccessed": 1779626214870,
+      "type": "file"
+    },
+    {
+      "path": "src/errors/invalid-tenant-source.error.ts",
+      "accessCount": 4,
+      "lastAccessed": 1779626221878,
+      "type": "file"
+    },
+    {
+      "path": "src/decorators/cacheable.decorator.ts",
+      "accessCount": 3,
+      "lastAccessed": 1779625099109,
+      "type": "file"
+    },
+    {
+      "path": "docs/critical-notes.md",
+      "accessCount": 3,
+      "lastAccessed": 1779625875431,
+      "type": "file"
+    },
+    {
+      "path": "src/prisma/index.ts",
+      "accessCount": 2,
+      "lastAccessed": 1779624970792,
+      "type": "file"
+    },
+    {
+      "path": "src/typeorm/index.ts",
+      "accessCount": 2,
+      "lastAccessed": 1779624978523,
+      "type": "file"
+    },
+    {
+      "path": "src/context/get-current-tenant-id.ts",
+      "accessCount": 2,
+      "lastAccessed": 1779625040456,
+      "type": "file"
+    },
+    {
+      "path": "src/decorators/system-action.decorator.ts",
+      "accessCount": 2,
+      "lastAccessed": 1779625150437,
+      "type": "file"
+    },
+    {
+      "path": "src/decorators/tenant-context.decorator.ts",
+      "accessCount": 2,
+      "lastAccessed": 1779625162601,
+      "type": "file"
+    },
+    {
+      "path": "src/middleware/tenant-context.middleware.ts",
+      "accessCount": 2,
+      "lastAccessed": 1779625179749,
+      "type": "file"
+    },
+    {
+      "path": "src/cache/cache.service.ts",
+      "accessCount": 2,
+      "lastAccessed": 1779625282513,
+      "type": "file"
+    },
+    {
+      "path": "docs/tenant-shield-PRD.md",
+      "accessCount": 2,
+      "lastAccessed": 1779625874382,
+      "type": "file"
+    },
+    {
+      "path": "docs/workflow.md",
+      "accessCount": 2,
+      "lastAccessed": 1779625874669,
+      "type": "file"
+    },
+    {
+      "path": "test/unit/system-action.decorator.spec.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779612484352,
+      "type": "file"
+    },
+    {
+      "path": "test/unit/prisma-tenant.extension.spec.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779612528839,
+      "type": "file"
+    },
+    {
+      "path": "examples/prisma-saas/README.md",
+      "accessCount": 1,
+      "lastAccessed": 1779612570625,
+      "type": "file"
+    },
+    {
+      "path": "docs/tenant-shield-api-spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1779624908081,
+      "type": "file"
+    },
+    {
+      "path": "src/cache/cache.registry.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624920175,
+      "type": "file"
+    },
+    {
+      "path": "src/cache/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624921814,
+      "type": "file"
+    },
+    {
+      "path": "src/constants/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624922263,
+      "type": "file"
+    },
+    {
+      "path": "src/context/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624923802,
+      "type": "file"
+    },
+    {
+      "path": "src/context/run-with-tenant.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624924352,
+      "type": "file"
+    },
+    {
+      "path": "src/context/tenant-context.storage.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624924774,
+      "type": "file"
+    },
+    {
+      "path": "src/decorators/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624930649,
+      "type": "file"
+    },
+    {
+      "path": "src/errors/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624934211,
+      "type": "file"
+    },
+    {
+      "path": "src/interfaces/cacheable-options.interface.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624943581,
+      "type": "file"
+    },
+    {
+      "path": "src/interfaces/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624944302,
+      "type": "file"
+    },
+    {
+      "path": "src/interfaces/require-tenant-options.interface.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624944815,
+      "type": "file"
+    },
+    {
+      "path": "src/interfaces/tenant-context-options.interface.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624945888,
+      "type": "file"
+    },
+    {
+      "path": "src/interfaces/tenant-context.interface.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624950715,
+      "type": "file"
+    },
+    {
+      "path": "src/middleware/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624950914,
+      "type": "file"
+    },
+    {
+      "path": "src/options/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624956173,
+      "type": "file"
+    },
+    {
+      "path": "src/options/options.registry.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624962267,
+      "type": "file"
+    },
+    {
+      "path": "src/resolvers/custom.resolver.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624972359,
+      "type": "file"
+    },
+    {
+      "path": "src/resolvers/header.resolver.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624972752,
+      "type": "file"
+    },
+    {
+      "path": "src/resolvers/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624973871,
+      "type": "file"
+    },
+    {
+      "path": "src/resolvers/jwt.resolver.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624974493,
+      "type": "file"
+    },
+    {
+      "path": "src/resolvers/resolver.factory.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624974847,
+      "type": "file"
+    },
+    {
+      "path": "src/resolvers/subdomain.resolver.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624975945,
+      "type": "file"
+    },
+    {
+      "path": "src/resolvers/tenant-resolver.interface.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624976472,
+      "type": "file"
+    },
+    {
+      "path": "src/testing/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1779624977499,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

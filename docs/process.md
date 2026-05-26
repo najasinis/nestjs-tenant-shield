@@ -11,18 +11,18 @@
 ## 📌 지금 여기 (Live Dashboard)
 
 ```
-0단계 ✅ → 1번 ✅ → 2번 ✅ (2-a/b/c/d 모두 완료) → 5번 ✅ → 6번 ✅ → 3~4번 ⏳
+0단계 ✅ → 1번 ✅ → 2번 ✅ → 3번 ✅ → 4번 ✅ → 5번 ✅ → 6번 ✅
 ```
 
 | 항목 | 값 |
 |---|---|
-| **현재 진입점** | v0.3 RLS PoC 또는 외부 피드백 수집 대기 |
-| **최신 릴리즈** | v0.2.0 (npm publish ✅, commit 3dab27f) |
+| **현재 진입점** | 외부 피드백 수집 대기 또는 v0.3 RLS PoC |
+| **최신 릴리즈** | v0.2.0 (npm publish 대기) |
 | **다음 체크포인트** | 외부 피드백 3건 또는 파일럿 1건 → v0.3 여부 결정 |
 | **다음 회고 시점** | 평가 20건 누적 시 `/eval-review` (Opus) |
 | **블로커** | 없음 |
-| **마지막 갱신** | 2026-05-26 |
-| **테스트 현황** | 13 suites / 86 tests (1 skipped suite, 5 skipped tests) |
+| **마지막 갱신** | 2026-05-24 |
+| **테스트 현황** | 13 suites / 81 passed / 5 skipped (TSC clean) |
 
 ### 매 세션 시작 시 자가 점검
 
@@ -51,8 +51,8 @@ git log --oneline HEAD..origin/main
 | **0** | (재정렬로 추가) v0.1 약속 완성 | Subscriber 자동 등록, @Cacheable DI 연결, 와이어링 정리 | ✅ |
 | 1 | 안정화 및 문서화 | README 정밀 범위, runWithoutTenant 가이드, examples 보강, e2e 커버리지 | ✅ |
 | 2 | 기능 확장 | 캐시 어댑터 DI, @SystemAction 세분화, Bull/BullMQ, Prisma | ✅ |
-| 3 | 보안/안정성 | Postgres RLS(v0.3), cross-tenant 감사 로그, strict=false 경고 체계 | 🔄 일부 완료 |
-| 4 | 개발자 경험 | 타입 추론 개선, NestJS 11.x 호환, 실행 가능한 예제, 에러 메시지 한/영 | 🔄 일부 완료 |
+| 3 | 보안/안정성 | cross-tenant 감사 콜백, strict=false 경고 체계 (RLS → v0.3) | ✅ |
+| 4 | 개발자 경험 | 에러 메시지 한/영, SecurityViolationEvent 타입, 코드 간소화 | ✅ |
 | 5 | 배포/운영 | prepublishOnly lint, CHANGELOG, CI/CD, 첫 공식 릴리즈 | ✅ |
 | 6 | 문서/커뮤니티 | FAQ/트러블슈팅, GitHub 템플릿, CONTRIBUTING.md | ✅ |
 
@@ -246,3 +246,4 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 | 2026-05-23 | 2-b 완료 (82422e8). Live Dashboard 진입점→publish scope 결정으로 갱신. §6 스냅샷 47 tests로 업데이트. |
 | 2026-05-23 | 2-c/2-d → v0.2 확정(PRD §7). PostgreSQL e2e(2-e) 추가. Live Dashboard: To-Do 4→5 직행으로 갱신. |
 | 2026-05-24 | 2-d Prisma 어댑터 완료. createTenantAwarePrisma + 19 tests. 진입점 → 2-c(BullMQ). |
+| 2026-05-24 | To-Do 3~6 완료. SecurityViolationEvent + onSecurityViolation 콜백, strictMode=false 경고, 에러 메시지 한영, CI/CD, CHANGELOG, CONTRIBUTING, 이슈 템플릿, troubleshooting 추가. v0.2.0 준비. TSC clean / 81 passed. |
