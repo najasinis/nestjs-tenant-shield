@@ -108,6 +108,18 @@ function wrapMethod(
     if (!tenantId && !options.allowSystem && !shouldBypass) {
       // strictMode=false면 경고만(현재 logger 미주입), 그 외 throw.
       if (options.strictMode !== false) {
+        const globalOpts = getGlobalOptions();
+        if (globalOpts?.onSecurityViolation) {
+          try {
+            globalOpts.onSecurityViolation({
+              type: 'missing-context',
+              currentTenantId: null,
+              operation: `decorator-${String(propertyKey)}`,
+            });
+          } catch {
+            // Never let audit callback mask the original error.
+          }
+        }
         throw new MissingTenantContextError(
           `@RequireTenant: tenant 컨텍스트 없음 — "${String(propertyKey)}" 호출 전 확인:\n` +
             `  1) TenantContextMiddleware가 이 라우트에 적용됐는지\n` +

@@ -27,6 +27,25 @@ export type TenantSource = 'header' | 'jwt' | 'subdomain' | 'custom';
 export type TenantStrategy = 'discriminator' | 'schema' | 'database';
 
 /**
+ * Security violation audit event. Passed to `onSecurityViolation` callback just before throwing.
+ * Use it for Sentry/Slack alerts or audit logs.
+ *
+ * 보안 위반 감사 이벤트. throw 직전에 `onSecurityViolation` 콜백으로 전달됩니다.
+ */
+export interface SecurityViolationEvent {
+  /** Violation type. / 위반 유형. */
+  type: 'cross-tenant' | 'missing-context';
+  /** Current request tenant ID, or null if missing. / 현재 요청의 tenant ID (없으면 null). */
+  currentTenantId: string | null;
+  /** The tenant ID of the attempted data (cross-tenant only). / 접근 시도된 데이터의 tenant ID. */
+  attemptedTenantId?: string;
+  /** Entity or Prisma model name, if available. / entity 또는 모델 이름. */
+  entityName?: string;
+  /** The operation where the violation was detected. / 위반이 감지된 작업. */
+  operation: string;
+}
+
+/**
  * forRoot()에 전달하는 옵션.
  */
 export interface TenantShieldOptions {
@@ -100,6 +119,23 @@ export interface TenantShieldOptions {
    * 켜더라도 메서드에 @SystemAction()을 명시적으로 붙여야 합니다.
    */
   allowSystemActions?: boolean;
+
+  /**
+   * Security violation audit callback. Called just BEFORE throwing CrossTenantAccessError
+   * or MissingTenantContextError. Errors thrown by this callback are silently swallowed to
+   * ensure the original security error always propagates.
+   *
+   * 보안 위반 감사 콜백. CrossTenantAccessError / MissingTenantContextError throw 직전에 호출됩니다.
+   * 콜백에서 throw가 발생해도 원래 보안 에러가 항상 전파되도록 조용히 무시됩니다.
+   *
+   * Example / 예시:
+   *   onSecurityViolation: (event) => {
+   *     if (event.type === 'cross-tenant') {
+   *       alertingService.critical('Cross-tenant access detected', event);
+   *     }
+   *   }
+   */
+  onSecurityViolation?: (event: SecurityViolationEvent) => void;
 
   /**
    * tenant 보호를 적용할 entity 클래스 목록.

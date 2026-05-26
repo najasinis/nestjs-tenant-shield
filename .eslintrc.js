@@ -16,10 +16,7 @@ module.exports = {
   plugins: ['@typescript-eslint/eslint-plugin'],
 
   extends: [
-    // TypeScript 권장 규칙.
     'plugin:@typescript-eslint/recommended',
-    // Prettier와 충돌하는 규칙들을 모두 끄는 프리셋. 가장 마지막에 두어야 함.
-    'prettier',
   ],
 
   root: true,
@@ -42,5 +39,7 @@ module.exports = {
 
     // 사용하지 않는 변수는 에러. 단, '_'로 시작하는 건 의도적 무시로 허용.
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    // TypeORM/NestJS 생태계에서 Function 타입은 entity constructor 등으로 사용됨.
+    '@typescript-eslint/ban-types': 'off',
   },
 };

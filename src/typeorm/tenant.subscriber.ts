@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { getCurrentTenantId } from '../context/get-current-tenant-id';
 import { tenantContextStorage } from '../context/tenant-context.storage';
-import { TenantShieldOptions } from '../interfaces/tenant-shield-options.interface';
+import { SecurityViolationEvent, TenantShieldOptions } from '../interfaces/tenant-shield-options.interface';
 import { MissingTenantContextError } from '../errors/missing-tenant-context.error';
 import { CrossTenantAccessError } from '../errors/cross-tenant-access.error';
 
@@ -61,6 +61,13 @@ export class TenantSubscriber implements EntitySubscriberInterface {
     const existingValue = (entity as Record<string, unknown>)[tenantField];
     if (existingValue) {
       if (tenantId && existingValue !== tenantId) {
+        this.options.onSecurityViolation && fireAuditCallback(this.options, {
+          type: 'cross-tenant',
+          currentTenantId: tenantId,
+          attemptedTenantId: String(existingValue),
+          entityName: event.metadata.name,
+          operation: 'typeorm-insert',
+        });
         throw new CrossTenantAccessError(
           `INSERT 시 ${tenantField}=${existingValue}는 현재 tenant(${tenantId})와 다릅니다.`,
           tenantId,
@@ -79,6 +86,12 @@ export class TenantSubscriber implements EntitySubscriberInterface {
 
     // 3) 컨텍스트도 없고 시스템 작업도 아니면 strict mode에서 throw.
     if (!isSystemAction && this.options.strictMode !== false) {
+      fireAuditCallback(this.options, {
+        type: 'missing-context',
+        currentTenantId: null,
+        entityName: event.metadata.name,
+        operation: 'typeorm-insert',
+      });
       throw new MissingTenantContextError(
         `INSERT 시 tenant 컨텍스트가 없습니다. entity=${event.metadata.name}`,
         'typeorm-insert',
@@ -109,6 +122,13 @@ export class TenantSubscriber implements EntitySubscriberInterface {
 
     // 현재 컨텍스트가 있는데 다른 tenant 데이터가 올라왔다면 즉시 차단.
     if (tenantId && entityTenant && entityTenant !== tenantId) {
+      fireAuditCallback(this.options, {
+        type: 'cross-tenant',
+        currentTenantId: tenantId,
+        attemptedTenantId: String(entityTenant),
+        entityName: event?.metadata?.name,
+        operation: 'typeorm-afterLoad',
+      });
       throw new CrossTenantAccessError(
         `[SECURITY] ${event.metadata.name} 로드 결과의 ${tenantField}(${entityTenant})가 현재 tenant(${tenantId})와 다릅니다. 코드의 escape hatch를 점검하세요.`,
         tenantId,
@@ -149,6 +169,19 @@ let _origFindBy: typeof Repository.prototype.findBy | null = null;
 let _origFindOneBy: typeof Repository.prototype.findOneBy | null = null;
 let _origCount: typeof Repository.prototype.count | null = null;
 let _origSave: typeof Repository.prototype.save | null = null;
+
+/** Safely calls the security violation callback, swallowing any errors from the callback itself. */
+function fireAuditCallback(
+  options: TenantShieldOptions | null | undefined,
+  event: SecurityViolationEvent,
+): void {
+  if (!options?.onSecurityViolation) return;
+  try {
+    options.onSecurityViolation(event);
+  } catch {
+    // Never let audit callback errors mask the original security error.
+  }
+}
 
 function patchQueryBuildersOnce(options: TenantShieldOptions): void {
   if (isQueryBuilderPatched) {
@@ -225,6 +258,11 @@ function applyTenantWhereIfNeeded(
 
   if (!tenantId) {
     if (!isSystemAction && options.strictMode !== false) {
+      fireAuditCallback(patchedOptions, {
+        type: 'missing-context',
+        currentTenantId: null,
+        operation: 'typeorm-query',
+      });
       throw new MissingTenantContextError(
         'QueryBuilder 실행 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
         'typeorm-query',
@@ -359,6 +397,11 @@ function applyTenantToFindOptions(repo: Repository<any>, options: any): any {
   // ([critical-notes.md](./docs/critical-notes.md) §1.1).
   if (!tenantId) {
     if (!isSystemAction && strict) {
+      fireAuditCallback(patchedOptions, {
+        type: 'missing-context',
+        currentTenantId: null,
+        operation: 'typeorm-repository',
+      });
       throw new MissingTenantContextError(
         'Repository 실행 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
         'typeorm-repository',
@@ -382,6 +425,11 @@ function applyTenantToWhere(repo: Repository<any>, where: any): any {
 
   if (!tenantId) {
     if (!isSystemAction && strict) {
+      fireAuditCallback(patchedOptions, {
+        type: 'missing-context',
+        currentTenantId: null,
+        operation: 'typeorm-repository',
+      });
       throw new MissingTenantContextError(
         'Repository 실행 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
         'typeorm-repository',
@@ -402,6 +450,11 @@ function applyTenantToSaveEntity(repo: Repository<any>, entity: any): any {
 
   if (!tenantId) {
     if (!isSystemAction && strict) {
+      fireAuditCallback(patchedOptions, {
+        type: 'missing-context',
+        currentTenantId: null,
+        operation: 'typeorm-save',
+      });
       throw new MissingTenantContextError(
         'Repository.save 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
         'typeorm-save',
@@ -417,6 +470,13 @@ function applyTenantToSaveEntity(repo: Repository<any>, entity: any): any {
   const attach = (item: any) => {
     const existing = item?.[tenantField];
     if (existing && existing !== tenantId) {
+      fireAuditCallback(patchedOptions, {
+        type: 'cross-tenant',
+        currentTenantId: tenantId,
+        attemptedTenantId: String(existing),
+        entityName: repo.metadata?.name ?? 'UnknownEntity',
+        operation: 'typeorm-save',
+      });
       throw new CrossTenantAccessError(
         `INSERT 시 ${tenantField}=${existing}는 현재 tenant(${tenantId})와 다릅니다.`,
         tenantId,

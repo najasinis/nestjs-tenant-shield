@@ -2,7 +2,7 @@ import { getCurrentTenantId } from '../context/get-current-tenant-id';
 import { tenantContextStorage } from '../context/tenant-context.storage';
 import { CrossTenantAccessError } from '../errors/cross-tenant-access.error';
 import { MissingTenantContextError } from '../errors/missing-tenant-context.error';
-import { TenantShieldOptions } from '../interfaces/tenant-shield-options.interface';
+import { SecurityViolationEvent, TenantShieldOptions } from '../interfaces/tenant-shield-options.interface';
 
 // WHERE를 추가할 수 있는 읽기 작업 (findUnique/findUniqueOrThrow는 unique 제약 때문에 별도 처리)
 const WHERE_INJECTABLE_READ_OPS = new Set([
@@ -23,6 +23,18 @@ const WHERE_ONLY_WRITE_OPS = new Set(['update', 'updateMany', 'delete', 'deleteM
 // 집계 결과는 entity row가 아니므로 사후 tenantId 검증 건너뜀
 const AGGREGATE_OPS = new Set(['count', 'aggregate', 'groupBy']);
 
+function fireAuditCallback(
+  onViolation: ((event: SecurityViolationEvent) => void) | undefined,
+  event: SecurityViolationEvent,
+): void {
+  if (!onViolation) return;
+  try {
+    onViolation(event);
+  } catch {
+    // Never let audit callback errors mask the original security error.
+  }
+}
+
 /**
  * Prisma Client를 tenant-aware하게 확장하는 함수.
  *
@@ -37,7 +49,7 @@ export function createTenantAwarePrisma<
   TClient extends { $extends: (...args: any[]) => any },
 >(
   client: TClient,
-  options: Pick<TenantShieldOptions, 'tenantIdField' | 'strictMode'>,
+  options: Pick<TenantShieldOptions, 'tenantIdField' | 'strictMode' | 'onSecurityViolation'>,
 ): ReturnType<TClient['$extends']> {
   const tenantField = options.tenantIdField;
   const strict = options.strictMode !== false;
@@ -61,6 +73,11 @@ export function createTenantAwarePrisma<
 
           if (!tenantId) {
             if (!isSystemAction && strict) {
+              fireAuditCallback(options.onSecurityViolation, {
+                type: 'missing-context',
+                currentTenantId: null,
+                operation: `prisma-${operation}`,
+              });
               return Promise.reject(
                 new MissingTenantContextError(
                   `Prisma ${operation} 실행 시 tenant 컨텍스트가 없습니다. ` +
@@ -78,7 +95,7 @@ export function createTenantAwarePrisma<
           if (UNIQUE_READ_OPS.has(operation)) {
             const result = await query(args);
             if (result !== null && result !== undefined) {
-              validateEntityTenant(result, tenantId, tenantField, operation);
+              validateEntityTenant(result, tenantId, tenantField, operation, options.onSecurityViolation);
             }
             return result;
           }
@@ -88,7 +105,7 @@ export function createTenantAwarePrisma<
 
           // 집계 결과는 row가 아니므로 검증 불필요
           if (!AGGREGATE_OPS.has(operation)) {
-            validateResult(result, tenantId, tenantField, operation);
+            validateResult(result, tenantId, tenantField, operation, options.onSecurityViolation);
           }
 
           return result;
@@ -130,15 +147,21 @@ function injectTenant(
   return args;
 }
 
-function validateResult(result: any, tenantId: string, tenantField: string, operation: string): void {
+function validateResult(
+  result: any,
+  tenantId: string,
+  tenantField: string,
+  operation: string,
+  onViolation?: (event: SecurityViolationEvent) => void,
+): void {
   if (result === null || result === undefined) return;
 
   if (Array.isArray(result)) {
     for (const item of result) {
-      validateEntityTenant(item, tenantId, tenantField, operation);
+      validateEntityTenant(item, tenantId, tenantField, operation, onViolation);
     }
   } else if (typeof result === 'object') {
-    validateEntityTenant(result, tenantId, tenantField, operation);
+    validateEntityTenant(result, tenantId, tenantField, operation, onViolation);
   }
 }
 
@@ -147,13 +170,23 @@ function validateEntityTenant(
   tenantId: string,
   tenantField: string,
   operation: string,
+  onViolation?: (event: SecurityViolationEvent) => void,
 ): void {
   if (!entity || typeof entity !== 'object') return;
   const entityTenant = entity[tenantField];
   if (entityTenant !== undefined && entityTenant !== null && entityTenant !== tenantId) {
+    fireAuditCallback(onViolation, {
+      type: 'cross-tenant',
+      currentTenantId: tenantId,
+      attemptedTenantId: String(entityTenant),
+      operation,
+      entityName: 'PrismaModel',
+    });
     throw new CrossTenantAccessError(
       `[SECURITY] Prisma ${operation} 결과의 ${tenantField}(${entityTenant})가 ` +
-        `현재 tenant(${tenantId})와 다릅니다. escape hatch를 점검하세요.`,
+        `현재 tenant(${tenantId})와 다릅니다. / ` +
+        `Cross-tenant data detected in Prisma ${operation}: ` +
+        `${tenantField}=${entityTenant} does not match current tenant ${tenantId}.`,
       tenantId,
       String(entityTenant),
       'PrismaModel',

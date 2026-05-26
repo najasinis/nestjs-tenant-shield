@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / 질문
+    url: https://github.com/jinyeongjung/nestjs-tenant-shield/discussions
+    about: Ask usage questions in Discussions / 사용법 질문은 Discussions에서
+  - name: Security Vulnerability / 보안 취약점
+    url: https://github.com/jinyeongjung/nestjs-tenant-shield/security/advisories/new
+    about: Report security vulnerabilities privately / 보안 취약점은 비공개로 신고

@@ -179,6 +179,17 @@ export class TenantShieldModule implements NestModule, OnApplicationBootstrap {
 
     // @RequireTenant / @Cacheable이 DI 바깥에서 사용할 글로벌 registry 등록.
     setGlobalOptions(this.options);
+
+    if (this.options.strictMode === false) {
+      TenantShieldModule.logger.warn(
+        '⚠ [nestjs-tenant-shield] strictMode가 비활성화되었습니다. ' +
+          'tenant 컨텍스트 없는 요청이 throw 없이 통과됩니다. ' +
+          '마이그레이션 외 프로덕션 사용은 데이터 누출 위험입니다.\n' +
+          '  strictMode is DISABLED — requests without tenant context will pass silently. ' +
+          'Do NOT use in production outside of migrations.',
+      );
+    }
+
     setGlobalCache(this.cache);
   }
 }
