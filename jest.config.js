@@ -39,5 +39,5 @@ module.exports = {
 
   // 테스트 시작 전에 한 번 실행되는 셋업 파일이 필요하면 여기에 추가.
   // 예: 전역 mock, reflect-metadata polyfill 등.
-  setupFiles: ['reflect-metadata'],
+  setupFiles: ['reflect-metadata', '<rootDir>/test/setup.js'],
 };
