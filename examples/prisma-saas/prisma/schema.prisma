@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Student {
+  id       Int    @id @default(autoincrement())
+  tenantId String
+  name     String
+  grade    Int
+
+  @@index([tenantId])
+}

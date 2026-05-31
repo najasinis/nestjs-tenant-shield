@@ -1,9 +1,134 @@
 # nestjs-tenant-shield
 
+[![npm version](https://badge.fury.io/js/nestjs-tenant-shield.svg)](https://www.npmjs.com/package/nestjs-tenant-shield)
+[![CI](https://github.com/jinyeongjung/nestjs-tenant-shield/actions/workflows/ci.yml/badge.svg)](https://github.com/jinyeongjung/nestjs-tenant-shield/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![NestJS](https://img.shields.io/badge/NestJS-v10%2B-red)](https://nestjs.com/)
 
 > NestJS B2B SaaS 백엔드의 데이터 격리를 데코레이터 한 줄로 자동화하는 라이브러리. Cross-tenant 데이터 누출 사고를 사전 차단하고, 코드를 깨끗하게 유지합니다.
+
+---
+
+## 🌐 English Quick Start
+
+Automatic multi-tenant data isolation for NestJS — one decorator, zero manual `WHERE tenantId` clauses.
+
+```bash
+npm install nestjs-tenant-shield
+```
+
+### 1. Register the module
+
+```typescript
+// app.module.ts
+import { TenantShieldModule } from 'nestjs-tenant-shield';
+
+@Module({
+  imports: [
+    TenantShieldModule.forRoot({
+      strategy: 'discriminator',   // single table + tenantId column
+      tenantIdField: 'tenantId',
+      tenantSource: 'header',
+      headerName: 'x-tenant-id',
+      strictMode: true,            // throw on missing tenant context
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### 2. Protect your service (TypeORM)
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { RequireTenant, Cacheable } from 'nestjs-tenant-shield';
+
+@Injectable()
+@RequireTenant()                          // enforces tenant context on every method
+export class StudentsService {
+  constructor(private readonly repo: Repository<Student>) {}
+
+  findAll() {
+    return this.repo.find();              // WHERE tenantId = ? injected automatically
+  }
+
+  @Cacheable({ ttl: 300, tenantScoped: true })
+  getRoster() {
+    return this.repo.find();             // cache key is tenant-scoped automatically
+  }
+}
+```
+
+### 3. Protect your service (Prisma)
+
+```typescript
+import { createTenantAwarePrisma } from 'nestjs-tenant-shield';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = createTenantAwarePrisma(new PrismaClient());
+
+// All queries below are automatically scoped to the current tenant
+const students = await prisma.student.findMany(); // WHERE tenantId = ? added automatically
+```
+
+### 4. First request
+
+```bash
+# With tenant context — returns data for academy-A only
+curl -H "x-tenant-id: academy-A" http://localhost:3000/students
+
+# Without tenant header — throws MissingTenantContextError (strictMode: true)
+curl http://localhost:3000/students
+```
+
+### Honest Limits (the 90% rule)
+
+nestjs-tenant-shield **automatically blocks ~90% of accidental cross-tenant access**. The remaining 10% requires manual attention:
+
+| Not protected | Recommended fix |
+|---|---|
+| Raw SQL (`repo.query`, `dataSource.query`) | Use `withTenantWhere(sql, 'tenant_id')` helper |
+| JOIN's other tables | Add `ON` clause with explicit tenant filter |
+| Subquery interiors | Add explicit `WHERE tenantId = ?` inside |
+| TypeORM CLI / Migrations | Always use system context (`runWithoutTenant`) |
+
+> This library is **one layer** of a defense-in-depth strategy, not a silver bullet.
+
+### API Reference
+
+```typescript
+// Module setup
+TenantShieldModule.forRoot({
+  strategy: 'discriminator',
+  tenantIdField: 'tenantId',
+  tenantSource: 'header' | 'jwt' | 'subdomain' | 'custom',
+  headerName?: string,        // for 'header' source
+  jwtClaim?: string,          // for 'jwt' source
+  subdomainPattern?: string,  // for 'subdomain' source
+  customResolver?: (req) => string | null,  // for 'custom' source
+  strictMode?: boolean,       // default: true
+  allowSystemActions?: boolean,
+})
+
+// Decorators
+@RequireTenant()              // class or method — requires tenant context
+@SystemAction()               // marks a method as intentionally tenant-free
+@Cacheable({ ttl, tenantScoped? })  // cache with automatic tenant key isolation
+@TenantContext()              // BullMQ/Bull job — restores tenant from job payload
+
+// Helpers
+getCurrentTenantId(): string | undefined
+runWithTenant(tenantId: string, fn: () => Promise<T>): Promise<T>
+runWithoutTenant(fn: () => Promise<T>): Promise<T>
+withTenantPayload(data: object): object  // enriches BullMQ job data with tenantId
+
+// Errors
+MissingTenantContextError    // no tenant in context (strictMode)
+CrossTenantAccessError       // tenant mismatch detected
+InvalidTenantSourceError     // bad tenantSource configuration
+```
+
+---
 
 ## 현재 상태
 
@@ -489,16 +614,18 @@ await runWithTenant('A', async () => {
 
 ## ⚡ 성능
 
-순수 오버헤드 실측값 (Node.js v20, 100,000회 반복, in-memory):
+> **추정값이 아닌 실측값** — `npm run benchmark` (100,000회 반복, in-memory)으로 직접 측정한 결과입니다.
+
+순수 오버헤드 실측값 (v0.2.1 measured, Node.js v24.13.1, MacBook, in-memory, 100,000 iterations):
 
 | 항목 | 오버헤드 |
 |------|---------|
-| `runWithTenant()` + `getCurrentTenantId()` | ~0.0005 ms |
-| `withTenantPayload()` | ~0.002 ms |
-| `@TenantContext()` 핸들러 호출 | ~0.003 ms |
+| `runWithTenant()` + `getCurrentTenantId()` | ~0.00069 ms / call |
+| `withTenantPayload()` | ~0.00069 ms / call |
+| `@TenantContext()` 핸들러 호출 | ~0.00068 ms / call |
 
 TypeORM Subscriber / Prisma extension의 DB 레벨 오버헤드는 DB 연결에 따라 다름.
-`npm run benchmark`로 직접 측정 가능.
+`npm run benchmark`로 로컬 환경에서 직접 재현 가능.
 
 ## 🗺️ 로드맵
 
