@@ -11,17 +11,18 @@
 ## 📌 지금 여기 (Live Dashboard)
 
 ```
-0단계 ✅ → 1번 ✅ → 2번 ✅ → 3번 ✅ → 4번 ✅ → 5번 ✅ → 6번 ✅
+0단계 ✅ → 1번 ✅ → 2번 ✅ → 3번 ✅ → 4번 ✅ → 5번 ✅ → 6번 ✅ → 7번 ⏳ → 8번 ⏳ → 9번 ⏳ → 10번 🔒
 ```
 
 | 항목 | 값 |
 |---|---|
-| **현재 진입점** | 외부 피드백 수집 대기 또는 v0.3 RLS PoC |
+| **현재 진입점** | 7번 — 벤치마크 실측 + npm fresh install 검증 |
 | **최신 릴리즈** | v0.2.1 (npm publish ✅) |
-| **다음 체크포인트** | 외부 피드백 3건 또는 파일럿 1건 → v0.3 여부 결정 |
+| **다음 체크포인트** | 7번 완료 → 8번(영문 문서 + 예제 실코드) 진입 |
+| **Gate B 상태** | ❌ 미달성 — 외부 피드백 0건 / 파일럿 0건 |
 | **다음 회고 시점** | 평가 20건 누적 시 `/eval-review` (Opus) |
 | **블로커** | 없음 |
-| **마지막 갱신** | 2026-05-24 |
+| **마지막 갱신** | 2026-05-28 |
 | **테스트 현황** | 13 suites / 81 passed / 5 skipped (TSC clean) |
 
 ### 매 세션 시작 시 자가 점검
@@ -55,6 +56,10 @@ git log --oneline HEAD..origin/main
 | 4 | 개발자 경험 | 에러 메시지 한/영, SecurityViolationEvent 타입, 코드 간소화 | ✅ |
 | 5 | 배포/운영 | prepublishOnly lint, CHANGELOG, CI/CD, 첫 공식 릴리즈 | ✅ |
 | 6 | 문서/커뮤니티 | FAQ/트러블슈팅, GitHub 템플릿, CONTRIBUTING.md | ✅ |
+| **7** | **신뢰도 최소 기준** | **벤치마크 실측, npm fresh install 검증** | ⏳ |
+| **8** | **글로벌 접근성** | **영문 README, 예제 실코드(prisma/bullmq/redis)** | ⏳ |
+| **9** | **커뮤니티 + Gate B** | **공개 발표, 외부 피드백 3건 / 파일럿 1건 수집** | ⏳ |
+| **10** | **v0.3 (Gate B 통과 후)** | **Postgres RLS 자동 주입** | 🔒 |
 
 ### 우선순위 재정렬 (직전 점검 반영)
 
@@ -186,29 +191,186 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 
 ---
 
-## 5. ⏳ To-Do 3 ~ 6번 — 예정
+## 5. ✅ To-Do 3 ~ 6번 — 완료 (v0.2.1)
 
-- **3 보안/안정성**: Postgres RLS PoC(v0.3), cross-tenant 감사 로그, strict=false 경고 체계
-- **4 개발자 경험**: 타입 추론 개선, NestJS 11.x 호환성 검증, 예제 실행 가능화, 에러 메시지 한/영
-- **5 배포/운영**: prepublishOnly lint, CHANGELOG, GitHub Actions CI/CD, 첫 공식 릴리즈 태깅
-- **6 문서/커뮤니티**: FAQ/트러블슈팅, GitHub Discussions/Issues 템플릿, CONTRIBUTING.md
+**커밋**: `3dab27f`, `28b66f2`, `056c13a` — v0.2.0 / v0.2.1 릴리즈
+
+- **3 보안/안정성**: `SecurityViolationEvent` + `onSecurityViolation` 콜백, `strictMode=false` 부팅 경고
+- **4 개발자 경험**: 에러 메시지 한/영 기본값, `SecurityViolationEvent` 타입 공개, 코드 간소화
+- **5 배포/운영**: `prepublishOnly` 가드, CHANGELOG, GitHub Actions(Node 18/20/22 매트릭스), v0.2.1 npm publish
+- **6 문서/커뮤니티**: `docs/FAQ.md`, `docs/troubleshooting.md`, `.github/ISSUE_TEMPLATE/` 한/영 이중 언어, `CONTRIBUTING.md`
 
 ---
 
-## 6. 검증 현황 스냅샷
+## 6. ⏳ To-Do 7번 — 신뢰도 최소 기준 (Gate C 완성)
+
+> **왜 먼저 해야 하나**: PRD §10.1이 "미측정값을 추측으로 채우지 말 것"이라고 명시했다.
+> README Performance 섹션이 현재 비어 있으면 Gate C("README 예시와 실제 구현 불일치 0건") 위반이다.
+> npm 배포 후 실제 설치 경로 검증도 빠져 있어 사용자가 첫 install에서 막힐 수 있다.
+
+### 7-a 벤치마크 실측 후 README 채우기
+
+**목표**: `benchmark/simple-bench.ts` 실행 결과를 README "Performance" 섹션 실수치로 채운다.
+
+체크리스트:
+- [ ] `npm run benchmark` 실행 — 측정 항목: `@RequireTenant` 오버헤드(메서드당), Subscriber `beforeQuery`(쿼리당), `afterLoad`(row당), ALS 접근(요청당)
+- [ ] 결과를 README의 다음 형식에 실측값으로 채운다
+
+  ```
+  벤치마크 (vX.X.X measured):
+  - @RequireTenant 오버헤드: ~X.X ms (메서드당)
+  - TypeORM Subscriber 오버헤드: ~X.X ms (쿼리당)
+  - AsyncLocalStorage 오버헤드: ~X.X ms (요청당)
+  - 총 오버헤드: ~X ms (typical 요청)
+
+  측정 환경: Node.js XX.x, MacBook MX, in-memory SQLite
+  ```
+
+- [ ] "추정값이 아닌 실측값" 문구를 README에 명시
+
+### 7-b npm fresh install → 실제 설치 경로 검증
+
+**목표**: npm 패키지 기준으로 설치했을 때 `examples/academy-saas/` 흐름이 동작하는지 확인한다.
+
+체크리스트:
+- [ ] 임시 빈 디렉토리에서 `npm install nestjs-tenant-shield @nestjs/common @nestjs/core typeorm reflect-metadata rxjs`
+- [ ] `examples/academy-saas/src/app.module.ts` 코드를 붙여넣어 서버 기동 → `GET /students` 요청
+- [ ] `x-tenant-id` 헤더 있는 요청: 200 + 해당 tenant 데이터
+- [ ] `x-tenant-id` 헤더 없는 요청: `MissingTenantContextError`
+- [ ] 발견된 문제(타입 오류, import 경로 등)는 즉시 수정 후 v0.2.2 패치 배포
+
+---
+
+## 7. ⏳ To-Do 8번 — 글로벌 접근성
+
+> **왜 필요한가**: npm 검색으로 유입되는 글로벌 사용자는 Quick Start 코드를 보기 전에 이탈한다.
+> 영문 섹션이 없으면 GitHub Star, 이슈, PR 기여 모두 한국 사용자로만 제한된다.
+> 예제 실코드 없는 README-only 예제는 "직접 써봤더니 안 됩니다"의 원인이 된다.
+
+### 8-a 영문 README 보강
+
+**목표**: 영어권 사용자가 README만 읽고 30분 내 기동 가능한 수준.
+
+체크리스트:
+- [ ] `README.md` 상단에 영문 Quick Start 섹션 추가 — 한국어 섹션 위에 배치
+  - `TenantShieldModule.forRoot()` 최소 설정
+  - `@RequireTenant()` + `find()` 예시 (TypeORM / Prisma 각 1개)
+  - `x-tenant-id` 헤더로 첫 요청 확인하는 curl 예시
+- [ ] "Honest Limits (90% rule)" 섹션 영문 병기
+  - raw SQL / JOIN / subquery / migration 미보호 케이스 영어로 명시
+- [ ] API Reference 핵심 4개 항목 영문 추가: `forRoot options`, `@RequireTenant`, `@SystemAction`, `@Cacheable`
+- [ ] npm badge에 버전 badge 추가 (`[![npm version](https://badge.fury.io/js/nestjs-tenant-shield.svg)](...)`)
+- [ ] CI 상태 badge 추가 (`[![CI](https://github.com/jinyeongjung/nestjs-tenant-shield/actions/workflows/ci.yml/badge.svg)](...)`)
+
+### 8-b 예제 실코드 완성
+
+**목표**: `examples/` 세 곳 모두 `git clone → pnpm install → pnpm start` 한 번에 동작.
+
+#### `examples/prisma-saas/`
+- [ ] `src/app.module.ts` — `TenantShieldModule.forRoot` + Prisma provider 설정
+- [ ] `src/main.ts`
+- [ ] `src/students/students.service.ts` — `createTenantAwarePrisma` + `findMany` / `create`
+- [ ] `src/students/students.controller.ts` — `GET /students`, `POST /students`
+- [ ] `prisma/schema.prisma` — `Student` 모델 (`tenantId` 포함)
+- [ ] `package.json` — 로컬 workspace 의존성이 아닌 npm 패키지 참조
+- [ ] README에 `prisma migrate dev` + `pnpm start` + curl 명령 추가
+
+#### `examples/queue-bullmq/`
+- [ ] `src/app.module.ts` — `BullModule` + `TenantShieldModule` 통합
+- [ ] `src/main.ts`
+- [ ] `src/reports/reports.service.ts` — `withTenantPayload` enqueue
+- [ ] `src/reports/report.processor.ts` — `@TenantContext()` + `WorkerHost`
+- [ ] `src/reports/reports.controller.ts` — `POST /reports/schedule`
+- [ ] `package.json` — npm 패키지 참조, Redis 연결 환경변수 가이드
+- [ ] README에 `docker run -p 6379:6379 redis:7-alpine` + `pnpm start` + curl 명령 추가
+
+#### `examples/redis-cache/`
+- [ ] `src/app.module.ts` — `TenantShieldModule.forRoot({ cache: { useFactory: ... } })` redis 어댑터 주입
+- [ ] `src/main.ts`
+- [ ] `src/students/students.service.ts` — `@Cacheable({ tenantScoped: true })` 적용
+- [ ] `package.json` — `ioredis` 포함
+- [ ] README에 Redis 기동 방법 + `pnpm start` + 캐시 hit/miss 확인 방법 추가
+
+---
+
+## 8. ⏳ To-Do 9번 — 커뮤니티 발표 + Gate B
+
+> **왜 이 순서인가**: 7번(신뢰도) + 8번(접근성)이 완료되기 전에 발표하면
+> "설치했더니 안 돼요"나 "영어 문서 없어요" 이슈가 첫 인상으로 박힌다.
+> 발표는 제품이 준비된 뒤에 한다.
+
+### 9-a 커뮤니티 발표
+
+체크리스트:
+- [ ] **dev.to (영문 포스트)**
+  - 제목 예: "Automatic multi-tenant data isolation in NestJS with one decorator"
+  - 포함: 문제 정의 → 코드 before/after → install + 30초 Quick Start → honest limits 섹션
+- [ ] **긱뉴스 (한국)**
+  - 제목 예: "NestJS B2B SaaS 멀티테넌시 데이터 격리를 데코레이터 한 줄로 — nestjs-tenant-shield"
+- [ ] **NestJS Discord** (`#libraries` 채널)
+- [ ] **r/node** (dev.to 포스트 링크)
+- [ ] **GitHub Discussions** 오픈 (첫 포스트: "Roadmap & Feedback" 핀 고정)
+
+### 9-b Gate B 달성 트래킹
+
+**Gate B 기준**: 외부 피드백 3건 이상 OR 파일럿 채택 1건.
+여기서 "피드백"은 GitHub Issue / Discussion / DM / 이메일 모두 포함. 단, 내가 스스로 남긴 이슈는 카운트하지 않는다.
+
+| # | 채널 | 내용 | 날짜 |
+|---|---|---|---|
+| 1 | — | — | — |
+| 2 | — | — | — |
+| 3 | — | — | — |
+
+> 3건 채워지면 §9 변경 이력에 기록하고 Gate B ✅로 갱신.
+
+### 9-c Gate B 결과 → v0.3 여부 결정
+
+- Gate B 통과: 10번(v0.3 RLS) 진입
+- Gate B 미통과 (피드백 0건, 6~8주 경과): 장기 투자 중단 검토 → 라이브러리 유지보수 모드 전환
+
+---
+
+## 9. 🔒 To-Do 10번 — v0.3 Postgres RLS (Gate B 통과 후)
+
+> **Gate B 통과 전에는 진입하지 않는다.** 사용자가 없는 기능을 만드는 것은 낭비다.
+
+### 배경
+
+현재 라이브러리는 "흔한 사고의 90% 차단"을 표방한다. 나머지 10%는 raw SQL / JOIN / 서브쿼리처럼 QueryBuilder를 우회하는 경우다.
+Postgres RLS(Row-Level Security)를 활성화하면 DB 레벨에서 두 번째 방어선이 생긴다:
+- 애플리케이션 레이어 격리(라이브러리)가 우회돼도 DB가 재차 차단
+- raw SQL / JOIN 내부 등 라이브러리가 잡지 못하는 경로 커버
+
+### 구현 스코프 (v0.3)
+
+- [ ] `TenantShieldModule.forRoot({ rls: true })` 옵션 추가
+- [ ] `onApplicationBootstrap`에서 `SET app.tenant_id = ?` 트리거 SQL 자동 생성 헬퍼
+- [ ] 쿼리 실행 전 `SET LOCAL app.tenant_id = '<tenantId>'` 자동 주입 (TypeORM DataSource 이벤트 훅)
+- [ ] `ENABLE ROW LEVEL SECURITY` + `POLICY` DDL 예시 문서화 (자동 실행 아님 — 사용자가 직접 적용)
+- [ ] e2e 테스트: RLS 활성화된 PG 컨테이너에서 raw SQL이 RLS로 차단되는지 검증
+
+---
+
+## 10. 검증 현황 스냅샷
 
 | 항목 | 상태 | 마지막 확인 |
 |---|---|---|
 | 타입체크 (`tsc --noEmit`) | ✅ 깨끗 | 2026-05-24 |
-| Jest | ✅ 13 suites / 86 tests pass (PG suite: Docker 없으면 skip) | 2026-05-24 |
-| origin/main 동기화 | ⏳ v0.2 커밋 대기 중 | 2026-05-24 |
-| 최신 커밋 | v0.2 전체 커밋 대기 | 2026-05-24 |
+| Jest | ✅ 13 suites / 81 passed / 5 skipped (PG suite: Docker 없으면 skip) | 2026-05-24 |
+| origin/main 동기화 | ✅ v0.2.1 push 완료 | 2026-05-24 |
+| npm publish | ✅ v0.2.1 | 2026-05-24 |
+| 벤치마크 실측 | ❌ 미완 — README Performance 섹션 비어있음 | — |
+| npm fresh install 검증 | ❌ 미완 — 로컬 workspace 기준만 검증됨 | — |
+| 영문 README | ❌ 미완 — 한국어 위주 | — |
+| 예제 실코드 (prisma/bullmq/redis) | ❌ 미완 — README만 존재 | — |
+| Gate B (외부 피드백) | ❌ 0 / 3건 | — |
 
 > 단계 마무리마다 이 표를 새 날짜로 갱신한다. "마지막 확인"이 7일 이상 지나면 신규 작업 진입 전 재검증.
 
 ---
 
-## 7. 작업 운영 컨벤션
+## 11. 작업 운영 컨벤션
 
 상세는 [claude.md](./claude.md) §3.
 
@@ -223,7 +385,7 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 
 ---
 
-## 8. 회고 누적 (Retrospective Log)
+## 12. 회고 누적 (Retrospective Log)
 
 `/eval-review` (Opus 회고) 결과를 여기에 1~2주마다 요약한다. 상세는
 `~/.claude/evaluations.md`.
@@ -236,7 +398,7 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 
 ---
 
-## 9. 변경 이력
+## 13. 변경 이력
 
 | 날짜 | 변경 |
 |---|---|
@@ -247,3 +409,4 @@ PRD §7에 의해 v0.2로 이관. v0.1 scope 밖.
 | 2026-05-23 | 2-c/2-d → v0.2 확정(PRD §7). PostgreSQL e2e(2-e) 추가. Live Dashboard: To-Do 4→5 직행으로 갱신. |
 | 2026-05-24 | 2-d Prisma 어댑터 완료. createTenantAwarePrisma + 19 tests. 진입점 → 2-c(BullMQ). |
 | 2026-05-24 | To-Do 3~6 완료. SecurityViolationEvent + onSecurityViolation 콜백, strictMode=false 경고, 에러 메시지 한영, CI/CD, CHANGELOG, CONTRIBUTING, 이슈 템플릿, troubleshooting 추가. v0.2.0 준비. TSC clean / 81 passed. |
+| 2026-05-28 | 전체 로드맵 재점검. 남은 단계(7~10번) 추가: 벤치마크 실측, npm fresh install 검증, 영문 README, 예제 실코드 완성, 커뮤니티 발표 + Gate B 트래킹, v0.3 RLS(Gate B 잠금). 검증 스냅샷 갱신. |
