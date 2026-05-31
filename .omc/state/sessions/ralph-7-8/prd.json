@@ -1,0 +1,96 @@
+{
+  "session": "ralph-7-8",
+  "task": "To-Do 7 (신뢰도 최소 기준) + To-Do 8 (글로벌 접근성) 완성",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "벤치마크 실측 후 README Performance 섹션 업데이트",
+      "passes": false,
+      "acceptanceCriteria": [
+        "npm run benchmark 실행 성공",
+        "README.md Performance 섹션에 실측값(ms 단위) 채워짐",
+        "'추정값이 아닌 실측값' 또는 영문 equivalent 문구 README에 명시",
+        "측정 환경(Node.js 버전, 하드웨어) README에 기록"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "npm fresh install 검증 + 문제 수정",
+      "passes": false,
+      "acceptanceCriteria": [
+        "임시 디렉토리에서 npm install nestjs-tenant-shield 성공",
+        "academy-saas 코드 기반 서버 기동 확인 (타입 오류 없음)",
+        "발견된 문제(타입 오류, import 경로 등) 수정됨",
+        "npx tsc -p tsconfig.build.json --noEmit && npx jest 여전히 통과"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "README.md 영문 Quick Start + badges 추가",
+      "passes": false,
+      "acceptanceCriteria": [
+        "README 상단에 영문 Quick Start 섹션 존재 (한국어 섹션 위)",
+        "TenantShieldModule.forRoot() 최소 설정 예시 (TypeORM + Prisma 각 1개)",
+        "curl 예시 포함",
+        "Honest Limits 섹션 영문 병기",
+        "API Reference 핵심 4항목 영문 추가 (forRoot, @RequireTenant, @SystemAction, @Cacheable)",
+        "npm version badge 추가",
+        "CI status badge 추가"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "examples/prisma-saas 실코드 완성",
+      "passes": false,
+      "acceptanceCriteria": [
+        "src/app.module.ts 존재 — TenantShieldModule.forRoot + Prisma provider",
+        "src/main.ts 존재",
+        "src/students/students.service.ts 존재 — createTenantAwarePrisma + findMany/create",
+        "src/students/students.controller.ts 존재 — GET/POST /students",
+        "prisma/schema.prisma 존재 — Student 모델 (tenantId 포함)",
+        "package.json — npm 패키지 참조 (workspace 아님)",
+        "README에 prisma migrate dev + pnpm start + curl 명령 있음",
+        "TypeScript 컴파일 오류 없음 (tsconfig 기준)"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "examples/queue-bullmq 실코드 완성",
+      "passes": false,
+      "acceptanceCriteria": [
+        "src/app.module.ts 존재 — BullModule + TenantShieldModule 통합",
+        "src/main.ts 존재",
+        "src/reports/reports.service.ts 존재 — withTenantPayload enqueue",
+        "src/reports/report.processor.ts 존재 — @TenantContext() + WorkerHost",
+        "src/reports/reports.controller.ts 존재 — POST /reports/schedule",
+        "package.json — npm 패키지 참조, Redis env 가이드",
+        "README에 docker run redis + pnpm start + curl 명령 있음",
+        "TypeScript 컴파일 오류 없음"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "examples/redis-cache 실코드 완성",
+      "passes": false,
+      "acceptanceCriteria": [
+        "src/app.module.ts 존재 — TenantShieldModule.forRoot({ cache: { useFactory } }) redis 어댑터 주입",
+        "src/main.ts 존재",
+        "src/students/students.service.ts 존재 — @Cacheable({ tenantScoped: true })",
+        "package.json — ioredis 포함, npm 패키지 참조",
+        "README에 Redis 기동 + pnpm start + 캐시 hit/miss 확인 방법 있음",
+        "TypeScript 컴파일 오류 없음"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "process.md 검증 스냅샷 갱신 + 전체 회귀 테스트 통과",
+      "passes": false,
+      "acceptanceCriteria": [
+        "npx tsc -p tsconfig.build.json --noEmit 통과",
+        "npx jest 모든 기존 테스트 통과 (81+ passed)",
+        "process.md 검증 스냅샷 테이블 갱신",
+        "process.md Live Dashboard 7번, 8번 ✅로 갱신"
+      ]
+    }
+  ]
+}
