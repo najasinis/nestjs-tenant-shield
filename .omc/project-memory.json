@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1779565313307,
-  "projectRoot": "/Users/jinyeong-jung/Private/nestjs-tenant-shield",
+  "lastScanned": 1780836982478,
+  "projectRoot": "/Users/admin/Private/superlearning/nestjs-tenant-shield",
   "techStack": {
     "languages": [
       {
@@ -24,7 +24,7 @@
     "frameworks": [
       {
         "name": "@nestjs/core",
-        "version": "10.0.0",
+        "version": "11.0.0",
         "category": "backend"
       },
       {
@@ -37,8 +37,8 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "npm run build 2>&1 | tail -5 && echo \"---\" && npm whoami 2>&1",
-    "testCommand": "npx tsc -p tsconfig.build.json --noEmit && npx jest --forceExit 2>&1 | tail -20",
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -54,10 +54,12 @@
       "lint": "eslint \"src/**/*.ts\" --fix",
       "//format": "Prettier로 일관된 포매팅 적용.",
       "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-      "//prepublishOnly": "npm publish 직전에 자동 실행되는 안전 장치. 빌드 실패 시 배포 차단.",
-      "prepublishOnly": "npm run build && npm test",
+      "//prepublishOnly": "npm publish 직전에 자동 실행되는 안전 장치. 빌드 → lint → 테스트 순서로 실패 시 배포 차단.",
+      "prepublishOnly": "npm run build && npm run lint && npm test",
       "//demo": "academy-saas 예제 데모 서버 실행.",
-      "demo": "ts-node -r tsconfig-paths/register --project tsconfig.demo.json examples/academy-saas/src/main.ts"
+      "demo": "ts-node -r tsconfig-paths/register --project tsconfig.demo.json examples/academy-saas/src/main.ts",
+      "//benchmark": "순수 오버헤드 벤치마크 (DB 없이 in-memory).",
+      "benchmark": "ts-node --transpile-only benchmark/simple-bench.ts"
     }
   },
   "conventions": {
@@ -82,11 +84,20 @@
   },
   "customNotes": [],
   "directoryMap": {
+    "benchmark": {
+      "path": "benchmark",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1780836982208,
+      "keyFiles": [
+        "simple-bench.ts"
+      ]
+    },
     "claude": {
       "path": "claude",
       "purpose": null,
       "fileCount": 4,
-      "lastAccessed": 1779565313293,
+      "lastAccessed": 1780836982208,
       "keyFiles": [
         "ARCHITECTURE.md",
         "CLAUDE.md",
@@ -94,44 +105,31 @@
         "IMPLEMENTATION_PLAN.md"
       ]
     },
-    "dist": {
-      "path": "dist",
-      "purpose": "Distribution/build output",
-      "fileCount": 8,
-      "lastAccessed": 1779565313294,
-      "keyFiles": [
-        "index.d.ts",
-        "index.d.ts.map",
-        "index.js",
-        "index.js.map",
-        "tenant-shield.module.d.ts"
-      ]
-    },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
-      "fileCount": 6,
-      "lastAccessed": 1779565313297,
+      "fileCount": 10,
+      "lastAccessed": 1780836982215,
       "keyFiles": [
+        "FAQ.md",
         "claude.md",
         "critical-notes.md",
-        "process.md",
-        "tenant-shield-PRD.md",
-        "tenant-shield-api-spec.md"
+        "post-devto.md",
+        "post-geeknews.md"
       ]
     },
     "examples": {
       "path": "examples",
       "purpose": "Example code",
       "fileCount": 0,
-      "lastAccessed": 1779565313297,
+      "lastAccessed": 1780836982215,
       "keyFiles": []
     },
     "src": {
       "path": "src",
       "purpose": "Source code",
       "fileCount": 2,
-      "lastAccessed": 1779565313298,
+      "lastAccessed": 1780836982216,
       "keyFiles": [
         "index.ts",
         "tenant-shield.module.ts"
@@ -140,9 +138,10 @@
     "test": {
       "path": "test",
       "purpose": "Test files",
-      "fileCount": 1,
-      "lastAccessed": 1779565313298,
+      "fileCount": 2,
+      "lastAccessed": 1780836982216,
       "keyFiles": [
+        "setup.js",
         "tenant-shield.module.spec.ts"
       ]
     },
@@ -150,7 +149,7 @@
       "path": "src/middleware",
       "purpose": "Middleware",
       "fileCount": 2,
-      "lastAccessed": 1779565313299,
+      "lastAccessed": 1780836982218,
       "keyFiles": [
         "index.ts",
         "tenant-context.middleware.ts"

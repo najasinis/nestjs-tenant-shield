@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"npm publish --access public 2>&1\",\"description\":\"Publish nestjs-tenant-shield@0.2.0 to npm\"}",
-  "error": "Exit code 1\n\n> nestjs-tenant-shield@0.2.0 prepublishOnly\n> npm run build && npm run lint && npm test\n\n\n> nestjs-tenant-shield@0.2.0 build\n> tsc -p tsconfig.build.json\n\n\n> nestjs-tenant-shield@0.2.0 lint\n> eslint \"src/**/*.ts\" --fix\n\n\n/Users/jinyeong-jung/Private/nestjs-tenant-shield/src/decorators/cacheable.decorator.ts\n  32:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n  42:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-e...",
-  "timestamp": "2026-05-26T08:14:44.915Z",
-  "retry_count": 1
-}
