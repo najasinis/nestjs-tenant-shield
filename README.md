@@ -1,7 +1,6 @@
 # nestjs-tenant-shield
 
 [![npm version](https://badge.fury.io/js/nestjs-tenant-shield.svg)](https://www.npmjs.com/package/nestjs-tenant-shield)
-[![CI](https://github.com/jinyeongjung/nestjs-tenant-shield/actions/workflows/ci.yml/badge.svg)](https://github.com/jinyeongjung/nestjs-tenant-shield/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![NestJS](https://img.shields.io/badge/NestJS-v10%2B-red)](https://nestjs.com/)
 
