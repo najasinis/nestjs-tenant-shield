@@ -46,7 +46,9 @@
     "//demo": "academy-saas 예제 데모 서버 실행.",
     "demo": "ts-node -r tsconfig-paths/register --project tsconfig.demo.json examples/academy-saas/src/main.ts",
     "//benchmark": "순수 오버헤드 벤치마크 (DB 없이 in-memory).",
-    "benchmark": "ts-node --transpile-only benchmark/simple-bench.ts"
+    "benchmark": "ts-node --transpile-only benchmark/simple-bench.ts",
+    "//test:hardening": "안정성 게이트 하네스 — 마케팅 진입 전 하드 게이트 통과 확인 (격리 fuzz, 동시성, 쓰기 차단, 90% rule 정직성, soak).",
+    "test:hardening": "jest --testPathPattern=test/hardening --runInBand --forceExit"
   },
   "//peerDeps-comment": "라이브러리 사용자가 직접 설치해야 하는 의존성. nestjs-tenant-shield 자체는 이들을 번들링하지 않습니다.",
   "peerDependencies": {
@@ -72,11 +74,12 @@
   },
   "//devDeps-comment": "개발/빌드/테스트에만 필요한 패키지. 배포 패키지에는 포함되지 않습니다.",
   "devDependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
-    "@nestjs/typeorm": "^11.0.0",
+    "@faker-js/faker": "^8.4.1",
+    "@nestjs/common": "^11.1.27",
+    "@nestjs/core": "^11.1.27",
+    "@nestjs/platform-express": "^11.1.27",
+    "@nestjs/testing": "^11.1.27",
+    "@nestjs/typeorm": "^11.0.2",
     "@testcontainers/postgresql": "^12.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.19.41",
@@ -84,6 +87,7 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",
+    "fast-check": "^3.23.2",
     "jest": "^29.5.0",
     "pg": "^8.21.0",
     "prettier": "^3.0.0",
@@ -114,7 +118,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jinyeongjung/nestjs-tenant-shield.git"
+    "url": "git+https://github.com/najasinis/nestjs-tenant-shield.git"
   },
   "//engines-comment": "Node.js 18+ 필요. AsyncLocalStorage가 18부터 안정화되었기 때문.",
   "engines": {

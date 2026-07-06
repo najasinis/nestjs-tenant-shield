@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1780836982478,
+  "lastScanned": 1783305324638,
   "projectRoot": "/Users/admin/Private/superlearning/nestjs-tenant-shield",
   "techStack": {
     "languages": [
@@ -24,7 +24,7 @@
     "frameworks": [
       {
         "name": "@nestjs/core",
-        "version": "11.0.0",
+        "version": "11.1.27",
         "category": "backend"
       },
       {
@@ -38,7 +38,7 @@
   },
   "build": {
     "buildCommand": "npm run build",
-    "testCommand": "npm test",
+    "testCommand": "cd /Users/admin/Private/superlearning/nestjs-leak-guard && npx jest --no-coverage 2>&1",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -59,7 +59,9 @@
       "//demo": "academy-saas 예제 데모 서버 실행.",
       "demo": "ts-node -r tsconfig-paths/register --project tsconfig.demo.json examples/academy-saas/src/main.ts",
       "//benchmark": "순수 오버헤드 벤치마크 (DB 없이 in-memory).",
-      "benchmark": "ts-node --transpile-only benchmark/simple-bench.ts"
+      "benchmark": "ts-node --transpile-only benchmark/simple-bench.ts",
+      "//test:hardening": "안정성 게이트 하네스 — 마케팅 진입 전 하드 게이트 통과 확인 (격리 fuzz, 동시성, 쓰기 차단, 90% rule 정직성, soak).",
+      "test:hardening": "jest --testPathPattern=test/hardening --runInBand --forceExit"
     }
   },
   "conventions": {
@@ -88,7 +90,7 @@
       "path": "benchmark",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1780836982208,
+      "lastAccessed": 1783305324620,
       "keyFiles": [
         "simple-bench.ts"
       ]
@@ -97,7 +99,7 @@
       "path": "claude",
       "purpose": null,
       "fileCount": 4,
-      "lastAccessed": 1780836982208,
+      "lastAccessed": 1783305324621,
       "keyFiles": [
         "ARCHITECTURE.md",
         "CLAUDE.md",
@@ -108,28 +110,28 @@
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
-      "fileCount": 10,
-      "lastAccessed": 1780836982215,
+      "fileCount": 11,
+      "lastAccessed": 1783305324627,
       "keyFiles": [
         "FAQ.md",
         "claude.md",
         "critical-notes.md",
-        "post-devto.md",
-        "post-geeknews.md"
+        "go-to-market.md",
+        "post-devto.md"
       ]
     },
     "examples": {
       "path": "examples",
       "purpose": "Example code",
       "fileCount": 0,
-      "lastAccessed": 1780836982215,
+      "lastAccessed": 1783305324627,
       "keyFiles": []
     },
     "src": {
       "path": "src",
       "purpose": "Source code",
       "fileCount": 2,
-      "lastAccessed": 1780836982216,
+      "lastAccessed": 1783305324628,
       "keyFiles": [
         "index.ts",
         "tenant-shield.module.ts"
@@ -139,7 +141,7 @@
       "path": "test",
       "purpose": "Test files",
       "fileCount": 2,
-      "lastAccessed": 1780836982216,
+      "lastAccessed": 1783305324628,
       "keyFiles": [
         "setup.js",
         "tenant-shield.module.spec.ts"
@@ -149,7 +151,7 @@
       "path": "src/middleware",
       "purpose": "Middleware",
       "fileCount": 2,
-      "lastAccessed": 1780836982218,
+      "lastAccessed": 1783305324629,
       "keyFiles": [
         "index.ts",
         "tenant-context.middleware.ts"
@@ -159,20 +161,26 @@
   "hotPaths": [
     {
       "path": "src/typeorm/tenant.subscriber.ts",
-      "accessCount": 23,
-      "lastAccessed": 1779626564744,
+      "accessCount": 30,
+      "lastAccessed": 1782343554390,
       "type": "file"
     },
     {
       "path": "docs/process.md",
-      "accessCount": 13,
-      "lastAccessed": 1779783327158,
+      "accessCount": 18,
+      "lastAccessed": 1783307855875,
       "type": "file"
     },
     {
       "path": "src/tenant-shield.module.ts",
       "accessCount": 11,
       "lastAccessed": 1779626194669,
+      "type": "file"
+    },
+    {
+      "path": "docs/critical-notes.md",
+      "accessCount": 8,
+      "lastAccessed": 1783307856049,
       "type": "file"
     },
     {
@@ -227,12 +235,6 @@
       "path": "src/decorators/cacheable.decorator.ts",
       "accessCount": 3,
       "lastAccessed": 1779625099109,
-      "type": "file"
-    },
-    {
-      "path": "docs/critical-notes.md",
-      "accessCount": 3,
-      "lastAccessed": 1779625875431,
       "type": "file"
     },
     {

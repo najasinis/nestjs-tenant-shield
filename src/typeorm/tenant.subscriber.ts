@@ -235,13 +235,21 @@ function patchQueryBuildersOnce(options: TenantShieldOptions): void {
 
   _origUpdateExecute = UpdateQueryBuilder.prototype.execute;
   UpdateQueryBuilder.prototype.execute = function (this: UpdateQueryBuilder<any>, ...args: any[]) {
-    applyTenantWhereIfNeeded(this, options);
+    try {
+      applyTenantWhereForMutation(this, options);
+    } catch (err) {
+      return Promise.reject(err) as any;
+    }
     return _origUpdateExecute!.apply(this, args as any);
   } as any;
 
   _origDeleteExecute = DeleteQueryBuilder.prototype.execute;
   DeleteQueryBuilder.prototype.execute = function (this: DeleteQueryBuilder<any>, ...args: any[]) {
-    applyTenantWhereIfNeeded(this, options);
+    try {
+      applyTenantWhereForMutation(this, options);
+    } catch (err) {
+      return Promise.reject(err) as any;
+    }
     return _origDeleteExecute!.apply(this, args as any);
   } as any;
 }
@@ -300,6 +308,108 @@ function applyTenantWhereIfNeeded(
       [paramKey]: tenantId,
     });
   }
+
+  qb[TENANT_WHERE_APPLIED_FLAG] = true;
+}
+
+/**
+ * DELETE/UPDATE QueryBuilder 전용 tenant 강제 주입.
+ *
+ * SELECT와 달리 DELETE/UPDATE는 afterLoad가 발동하지 않으므로,
+ * hasTenantWhere가 true여도 스킵할 수 없다.
+ * 사용자가 명시적으로 다른 tenant의 tenantId를 WHERE에 넣으면
+ * 즉시 CrossTenantAccessError를 던진다 (Fail-Loud).
+ * 안전망으로 항상 AND tenantId = currentTenant를 추가한다.
+ */
+function applyTenantWhereForMutation(
+  queryBuilder: UpdateQueryBuilder<any> | DeleteQueryBuilder<any>,
+  options: TenantShieldOptions,
+): void {
+  const qb = queryBuilder as any;
+  if (qb[TENANT_WHERE_APPLIED_FLAG]) return;
+
+  const tenantId = getCurrentTenantId();
+  const isSystemAction = tenantContextStorage.getStore()?.isSystemAction === true;
+
+  if (!tenantId) {
+    if (!isSystemAction && options.strictMode !== false) {
+      fireAuditCallback(patchedOptions, {
+        type: 'missing-context',
+        currentTenantId: null,
+        operation: 'typeorm-query',
+      });
+      throw new MissingTenantContextError(
+        'QueryBuilder 실행 시 tenant 컨텍스트가 없습니다. 요청/테스트 컨텍스트를 확인하세요.',
+        'typeorm-query',
+      );
+    }
+    return;
+  }
+
+  if (isSystemAction) return;
+
+  const mainAlias = qb.expressionMap?.mainAlias;
+  const metadata = mainAlias?.metadata;
+  if (!metadata) return;
+
+  if (!isTenantAwareMetadata(metadata, options)) return;
+
+  const tenantField = options.tenantIdField;
+  const aliasName = mainAlias.name;
+  const paramKey = '__tenant_id';
+  const params: Record<string, unknown> = qb.expressionMap?.parameters ?? {};
+
+  // Cross-tenant 탐지: WHERE 조건에 다른 tenant의 tenantId가 있으면 Fail-Loud
+  const tenantParamRegex = new RegExp(`${tenantField}\\s*=\\s*:(\\w+)`, 'i');
+  const wheres: any[] = qb.expressionMap?.wheres ?? [];
+  for (const where of wheres) {
+    const condition = where?.condition;
+    if (!condition) continue;
+
+    if (typeof condition === 'string' && condition.includes(tenantField)) {
+      const match = condition.match(tenantParamRegex);
+      if (match) {
+        const paramValue = params[match[1]];
+        if (typeof paramValue === 'string' && paramValue !== tenantId) {
+          fireAuditCallback(patchedOptions, {
+            type: 'cross-tenant',
+            currentTenantId: tenantId,
+            attemptedTenantId: paramValue,
+            entityName: metadata?.name,
+            operation: 'typeorm-query',
+          });
+          throw new CrossTenantAccessError(
+            `DELETE/UPDATE 시 ${tenantField}=${paramValue}는 현재 tenant(${tenantId})와 다릅니다.`,
+            tenantId,
+            paramValue,
+            metadata?.name,
+          );
+        }
+      }
+    } else if (condition !== null && typeof condition === 'object') {
+      const val = condition[tenantField];
+      if (val !== undefined && val !== tenantId) {
+        fireAuditCallback(patchedOptions, {
+          type: 'cross-tenant',
+          currentTenantId: tenantId,
+          attemptedTenantId: String(val),
+          entityName: metadata?.name,
+          operation: 'typeorm-query',
+        });
+        throw new CrossTenantAccessError(
+          `DELETE/UPDATE 시 ${tenantField}=${val}는 현재 tenant(${tenantId})와 다릅니다.`,
+          tenantId,
+          String(val),
+          metadata?.name,
+        );
+      }
+    }
+  }
+
+  // afterLoad 안전망이 없는 mutation은 항상 tenant WHERE를 강제 추가
+  qb.andWhere(`${aliasName}.${tenantField} = :${paramKey}`, {
+    [paramKey]: tenantId,
+  });
 
   qb[TENANT_WHERE_APPLIED_FLAG] = true;
 }

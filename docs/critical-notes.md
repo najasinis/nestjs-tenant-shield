@@ -115,6 +115,35 @@ class MyService {
 
 ---
 
+### 1.4 QueryBuilder DELETE/UPDATE에 다른 tenant의 tenantId를 명시하면 cross-tenant 삭제/갱신 가능 (C-1.11, 수정 완료)
+
+**증상**: tenant A 컨텍스트에서 `.delete().where('tenantId = :t', { t: tenantB }).execute()`를 실행하면 tenant B의 row가 실제로 삭제된다.
+
+**원인**: `applyTenantWhereIfNeeded`의 `hasTenantWhere` 검사는 `tenantId` 필드가 WHERE에 있는지만 확인하고, 값이 다른 tenant인지는 검사하지 않는다. `hasTenantWhere = true`이면 `AND tenantId = currentTenant` 추가를 스킵하는데, SELECT는 `afterLoad`가 최후 안전망 역할을 하지만 DELETE/UPDATE는 entity를 로드하지 않아 `afterLoad`가 발동하지 않는다.
+
+**수정 내용**: DELETE/UPDATE 전용 `applyTenantWhereForMutation` 함수를 추가. WHERE 조건에서 `tenantField = :paramName` 패턴을 파싱해 `expressionMap.parameters[paramName]`이 현재 tenant와 다르면 즉시 `CrossTenantAccessError`를 던진다 (Fail-Loud). 추가로 항상 `AND tenantId = currentTenant`를 강제 추가한다.
+
+**올바른 패턴**:
+```typescript
+// ❌ 금지 — 다른 tenant의 WHERE 조건 명시
+await qb.delete().from(Post).where('tenantId = :t', { t: otherTenant }).execute();
+// → CrossTenantAccessError (수정 후)
+
+// ✅ tenantId 명시 없음 — subscriber가 AND tenantId = currentTenant 자동 추가
+await qb.delete().from(Post).where('status = :s', { s: 'deleted' }).execute();
+```
+
+**알려진 탐지 한계 (실제 데이터 누출은 없음)**:
+- `tenantId = 'literal'` (파라미터 없는 SQL 리터럴) — 정규식 미매칭 → `CrossTenantAccessError` 미발생
+- `tenantId IN (:...ids, ...)` — `=` 없어 정규식 미매칭 → throw 미발생
+- `Brackets(qb => qb.where(...))` — condition이 문자열 아닌 객체 → string 탐지 미적용
+
+위 세 경우 모두, 라인 410의 `andWhere(tenantId = currentTenant)`가 최종적으로 `AND tenantId = 'A' AND tenantId = 'B'` 형태의 SQL을 생성하여 **실제 row 변경은 0건**으로 무력화된다. 단, `CrossTenantAccessError`가 발생하지 않고 조용히 0건 처리되므로 감사 콜백도 발동하지 않는다.
+
+**출처**: 2026-06-25 `test/hardening/honesty.spec.ts` C-1.11 발견 및 `applyTenantWhereForMutation` 수정; architect 리뷰(2026-06-25)에서 탐지 한계 추가 명세
+
+---
+
 ## 2. NestJS 와이어링 함정
 
 ### 2.1 `forRoutes` wildcard의 함정

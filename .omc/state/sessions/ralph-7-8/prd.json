@@ -5,7 +5,7 @@
     {
       "id": "US-001",
       "title": "벤치마크 실측 후 README Performance 섹션 업데이트",
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "npm run benchmark 실행 성공",
         "README.md Performance 섹션에 실측값(ms 단위) 채워짐",
@@ -16,7 +16,7 @@
     {
       "id": "US-002",
       "title": "npm fresh install 검증 + 문제 수정",
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "임시 디렉토리에서 npm install nestjs-tenant-shield 성공",
         "academy-saas 코드 기반 서버 기동 확인 (타입 오류 없음)",
@@ -27,7 +27,7 @@
     {
       "id": "US-003",
       "title": "README.md 영문 Quick Start + badges 추가",
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "README 상단에 영문 Quick Start 섹션 존재 (한국어 섹션 위)",
         "TenantShieldModule.forRoot() 최소 설정 예시 (TypeORM + Prisma 각 1개)",
@@ -41,7 +41,7 @@
     {
       "id": "US-004",
       "title": "examples/prisma-saas 실코드 완성",
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "src/app.module.ts 존재 — TenantShieldModule.forRoot + Prisma provider",
         "src/main.ts 존재",
@@ -56,7 +56,7 @@
     {
       "id": "US-005",
       "title": "examples/queue-bullmq 실코드 완성",
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "src/app.module.ts 존재 — BullModule + TenantShieldModule 통합",
         "src/main.ts 존재",
@@ -71,7 +71,7 @@
     {
       "id": "US-006",
       "title": "examples/redis-cache 실코드 완성",
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "src/app.module.ts 존재 — TenantShieldModule.forRoot({ cache: { useFactory } }) redis 어댑터 주입",
         "src/main.ts 존재",
@@ -84,12 +84,26 @@
     {
       "id": "US-007",
       "title": "process.md 검증 스냅샷 갱신 + 전체 회귀 테스트 통과",
-      "passes": false,
+      "passes": true,
       "acceptanceCriteria": [
         "npx tsc -p tsconfig.build.json --noEmit 통과",
         "npx jest 모든 기존 테스트 통과 (81+ passed)",
         "process.md 검증 스냅샷 테이블 갱신",
         "process.md Live Dashboard 7번, 8번 ✅로 갱신"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "C-1.11 보안 수정 — QueryBuilder DELETE/UPDATE cross-tenant 차단",
+      "passes": true,
+      "acceptanceCriteria": [
+        "applyTenantWhereForMutation 함수가 tenant.subscriber.ts에 존재",
+        "DELETE/UPDATE 패치가 applyTenantWhereForMutation을 호출함",
+        "다른 tenant의 tenantId를 WHERE에 명시하면 CrossTenantAccessError를 던짐",
+        "honesty.spec.ts DELETE/UPDATE C-1.11 테스트 2개 통과",
+        "cross-tenant-write.spec.ts delete 기존 테스트 (tenantId 명시 없는 경우) 여전히 통과",
+        "critical-notes.md §1.4에 C-1.11 수정 내용 문서화",
+        "npx tsc -p tsconfig.build.json --noEmit 통과"
       ]
     }
   ]
